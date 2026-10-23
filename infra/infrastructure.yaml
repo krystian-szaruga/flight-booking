@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgdata
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: flights-infra
+spec:
+  containers:
+    - name: postgres
+      image: docker.io/library/postgres:18
+      env:
+        - name: POSTGRES_DB
+          value: flights
+        - name: POSTGRES_USER
+          value: flights
+        - name: POSTGRES_PASSWORD
+          value: flights
+      ports:
+        - containerPort: 5432
+          hostPort: 5432
+      volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/18/docker
+  volumes:
+    - name: pgdata
+      persistentVolumeClaim:
+        claimName: pgdata
