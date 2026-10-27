@@ -1,0 +1,265 @@
+:root {
+  color-scheme: light;
+  --border: #d6d6de;
+  --muted: #6b7280;
+  --accent: #1d4ed8;
+  --available: #d1fae5;
+  --held: #fef3c7;
+  --sold: #e5e7eb;
+  --danger: #b91c1c;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f8f8fb;
+  color: #111827;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.app-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.brand {
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 0.25rem;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.search-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  color-scheme: light;
+  accent-color: var(--accent);
+}
+
+button[type='submit'],
+.button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.results-header {
+  margin-bottom: 1rem;
+}
+
+.flight-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.flight-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.flight-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.flight-number {
+  font-weight: 600;
+  margin: 0;
+}
+
+.flight-times {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.fare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.92rem;
+}
+
+.fare-table th,
+.fare-table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.fare-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
+}
+
+.price.cheapest {
+  font-weight: 600;
+}
+
+.flight-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fare-summary {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  margin-left: 0.75rem;
+}
+
+.legend-swatch:first-child {
+  margin-left: 0;
+}
+
+.seat-grid {
+  display: grid;
+  gap: 0.35rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  width: fit-content;
+}
+
+.seat-row {
+  display: grid;
+  grid-template-columns: 2rem repeat(6, 2.2rem);
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.seat-row-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.seat {
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seat-available {
+  background: var(--available);
+  cursor: pointer;
+}
+
+.seat-held {
+  background: var(--held);
+}
+
+.seat-sold {
+  background: var(--sold);
+  color: var(--muted);
+}
+
+.seat:disabled {
+  cursor: not-allowed;
+}
