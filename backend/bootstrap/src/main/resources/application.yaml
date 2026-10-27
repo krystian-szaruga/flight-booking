@@ -43,3 +43,8 @@ catalogue:
     on-startup: ${PULL_ON_STARTUP}
     cron: ${PULL_CRON}
     horizon-days: ${PULL_HORIZON_DAYS}
+
+reservation:
+  expiry:
+    enabled: ${RESERVATION_EXPIRY_ENABLED:true}
+    cron: ${RESERVATION_EXPIRY_CRON:0 * * * * *}

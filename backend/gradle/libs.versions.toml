@@ -9,6 +9,7 @@ postgresql = "42.7.2"
 [libraries]
 spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
@@ -36,6 +37,6 @@ spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 
 [bundles]
 spring-runtime = ["spring-boot-starter-actuator", "spring-boot-flyway"]
-spring-web = ["spring-boot-starter-web", "spring-boot-starter-validation"]
+spring-web = ["spring-boot-starter-web", "spring-boot-starter-validation", "jackson-module-kotlin"]
 spring-persistence = ["spring-boot-starter-data-jpa"]
 flyway = ["flyway-core", "flyway-postgresql"]

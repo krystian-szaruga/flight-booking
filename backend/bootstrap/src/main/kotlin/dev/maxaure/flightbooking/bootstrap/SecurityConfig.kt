@@ -42,6 +42,10 @@ internal class SecurityConfig {
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
                 it.requestMatchers("/actuator/health").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/api/v1/flights/**").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/api/v1/airports").permitAll()
+                it.requestMatchers(HttpMethod.POST, "/api/v1/reservations/flights/*").permitAll()
+                it.requestMatchers(HttpMethod.DELETE, "/api/v1/reservations/*").permitAll()
                 it.anyRequest().denyAll()
             }
             .oauth2ResourceServer { it.jwt(Customizer.withDefaults()) }

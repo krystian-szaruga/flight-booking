@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Cabin } from '../api/types'
-
-const IATA = /^[A-Za-z]{3}$/
+import type { AirportSummary, Cabin } from '../api/types'
+import { AirportCombobox } from '../components/AirportCombobox'
 
 const CABINS: { value: '' | Cabin; label: string }[] = [
   { value: '', label: 'Any cabin' },
@@ -20,22 +19,20 @@ function tomorrow(): string {
 
 export function SearchPage() {
   const navigate = useNavigate()
-  const [origin, setOrigin] = useState('')
-  const [destination, setDestination] = useState('')
+  const [origin, setOrigin] = useState<AirportSummary | null>(null)
+  const [destination, setDestination] = useState<AirportSummary | null>(null)
   const [date, setDate] = useState(tomorrow)
   const [cabin, setCabin] = useState<'' | Cabin>('')
   const [error, setError] = useState<string | null>(null)
 
   function submit(event: FormEvent) {
     event.preventDefault()
-    const from = origin.trim().toUpperCase()
-    const to = destination.trim().toUpperCase()
 
-    if (!IATA.test(from) || !IATA.test(to)) {
-      setError('Airport codes must be three letters, for example WAW.')
+    if (!origin || !destination) {
+      setError('Pick both airports from the suggestions.')
       return
     }
-    if (from === to) {
+    if (origin.iataCode === destination.iataCode) {
       setError('Origin and destination must differ.')
       return
     }
@@ -45,7 +42,11 @@ export function SearchPage() {
     }
 
     setError(null)
-    const params = new URLSearchParams({ origin: from, destination: to, date })
+    const params = new URLSearchParams({
+      origin: origin.iataCode,
+      destination: destination.iataCode,
+      date,
+    })
     if (cabin) params.set('cabin', cabin)
     navigate(`/results?${params.toString()}`)
   }
@@ -56,25 +57,11 @@ export function SearchPage() {
       <form className="search-form" onSubmit={submit}>
         <label>
           From
-          <input
-            value={origin}
-            onChange={(event) => setOrigin(event.target.value.toUpperCase())}
-            placeholder="WAW"
-            maxLength={3}
-            autoComplete="off"
-            required
-          />
+          <AirportCombobox value={origin} onChange={setOrigin} placeholder="Warsaw" />
         </label>
         <label>
           To
-          <input
-            value={destination}
-            onChange={(event) => setDestination(event.target.value.toUpperCase())}
-            placeholder="LIS"
-            maxLength={3}
-            autoComplete="off"
-            required
-          />
+          <AirportCombobox value={destination} onChange={setDestination} placeholder="Lisbon" />
         </label>
         <label>
           Departure
