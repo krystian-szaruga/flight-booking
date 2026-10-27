@@ -6,7 +6,10 @@ plugins {
 
 
 dependencies {
-    api(project(":application"))
+    api(project(":core:application"))
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.bundles.spring.web)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.oauth2.resource.server)
+    testImplementation(libs.postgresql)
 }

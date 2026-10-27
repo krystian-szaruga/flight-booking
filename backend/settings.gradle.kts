@@ -4,8 +4,10 @@ plugins {
 
 
 rootProject.name = "backend"
-include("domain")
-include("application")
+include("core:domain")
+include("core:application")
 include("adapter:web")
 include("adapter:persistence")
 include("bootstrap")
+include("adapter:provider")
+include("adapter:scheduler")

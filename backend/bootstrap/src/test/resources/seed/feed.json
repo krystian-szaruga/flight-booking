@@ -1,0 +1,64 @@
+{
+  "airports": [
+    { "iataCode": "WAW", "name": "Warsaw Chopin", "city": "Warsaw", "countryCode": "PL" },
+    { "iataCode": "LIS", "name": "Lisbon", "city": "Lisbon", "countryCode": "PT" },
+    { "iataCode": "FRA", "name": "Frankfurt", "city": "Frankfurt", "countryCode": "DE" },
+    { "iataCode": "CDG", "name": "Paris Charles de Gaulle", "city": "Paris", "countryCode": "FR" },
+    { "iataCode": "AMS", "name": "Amsterdam Schiphol", "city": "Amsterdam", "countryCode": "NL" },
+    { "iataCode": "MAD", "name": "Madrid Barajas", "city": "Madrid", "countryCode": "ES" },
+    { "iataCode": "FCO", "name": "Rome Fiumicino", "city": "Rome", "countryCode": "IT" },
+    { "iataCode": "BCN", "name": "Barcelona El Prat", "city": "Barcelona", "countryCode": "ES" }
+  ],
+  "flights": [
+    {
+      "flightNumber": "LO381",
+      "origin": "WAW",
+      "destination": "LIS",
+      "departureAt": "2026-11-10T08:15:00Z",
+      "arrivalAt": "2026-11-10T12:35:00Z",
+      "aircraft": "A320neo",
+      "seatRows": 10,
+      "fares": [ { "cabin": "ECONOMY", "amount": 399.00, "currency": "PLN" } ]
+    },
+    {
+      "flightNumber": "LO382",
+      "origin": "WAW",
+      "destination": "FRA",
+      "departureAt": "2026-11-10T09:00:00Z",
+      "arrivalAt": "2026-11-10T10:40:00Z",
+      "aircraft": "E190",
+      "seatRows": 8,
+      "fares": [ { "cabin": "ECONOMY", "amount": 249.00, "currency": "PLN" } ]
+    },
+    {
+      "flightNumber": "LO383",
+      "origin": "WAW",
+      "destination": "CDG",
+      "departureAt": "2026-11-10T10:30:00Z",
+      "arrivalAt": "2026-11-10T12:50:00Z",
+      "aircraft": "A320neo",
+      "seatRows": 10,
+      "fares": [ { "cabin": "ECONOMY", "amount": 329.00, "currency": "PLN" } ]
+    },
+    {
+      "flightNumber": "LO384",
+      "origin": "WAW",
+      "destination": "AMS",
+      "departureAt": "2026-11-10T11:45:00Z",
+      "arrivalAt": "2026-11-10T13:55:00Z",
+      "aircraft": "E195",
+      "seatRows": 9,
+      "fares": [ { "cabin": "ECONOMY", "amount": 289.00, "currency": "PLN" } ]
+    },
+    {
+      "flightNumber": "LO385",
+      "origin": "WAW",
+      "destination": "MAD",
+      "departureAt": "2026-11-10T13:10:00Z",
+      "arrivalAt": "2026-11-10T18:20:00Z",
+      "aircraft": "B737-8",
+      "seatRows": 10,
+      "fares": [ { "cabin": "ECONOMY", "amount": 449.00, "currency": "PLN" } ]
+    }
+  ]
+}
