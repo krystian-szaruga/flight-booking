@@ -1,0 +1,105 @@
+package dev.maxaure.flightbooking.persistence.repository
+
+import dev.maxaure.flightbooking.application.catalogue.repository.FlightRepository
+import dev.maxaure.flightbooking.domain.catalogue.model.FareClass
+import dev.maxaure.flightbooking.domain.catalogue.model.Flight
+import dev.maxaure.flightbooking.domain.catalogue.model.FlightIdentity
+import dev.maxaure.flightbooking.domain.catalogue.model.Seat
+import dev.maxaure.flightbooking.persistence.entity.FareClassEntity
+import dev.maxaure.flightbooking.persistence.entity.FlightEntity
+import dev.maxaure.flightbooking.persistence.entity.FlightSeatEntity
+import dev.maxaure.flightbooking.persistence.mapper.AirportMapper
+import dev.maxaure.flightbooking.persistence.mapper.FlightMapper
+import java.time.Instant
+import java.util.UUID
+
+internal class FlightRepositoryAdapter(
+    private val flights: SpringFlightJpaRepository,
+    private val fares: SpringFareClassJpaRepository,
+    private val seats: SpringFlightSeatJpaRepository,
+) : FlightRepository {
+
+    override fun findById(id: UUID): Flight? =
+        flights.findById(id).map(FlightMapper::toDomain).orElse(null)
+
+    override fun findByIdentity(identity: FlightIdentity): Flight? =
+        flights.findByFlightNumberAndDepartureAt(identity.flightNumber.value, identity.departureAt)
+            ?.let(::toDomainWithLayout)
+
+    override fun save(flight: Flight): Flight {
+        val entity = when (val existing = flights.findById(flight.id).orElse(null)) {
+            null -> FlightMapper.toEntity(flight)
+            else -> existing.apply {
+                flightNumber = flight.flightNumber.value
+                origin = AirportMapper.toEntity(flight.origin)
+                destination = AirportMapper.toEntity(flight.destination)
+                departureAt = flight.departureAt
+                arrivalAt = flight.arrivalAt
+                aircraft = flight.aircraft
+                status = flight.status.name
+                source = flight.source
+                syncedAt = flight.syncedAt
+                syncFares(flight.fares)
+
+            }
+        }
+        return FlightMapper.toDomain(flights.save(entity))
+    }
+
+    override fun replaceSeatInventory(flightId: UUID, seats: List<Seat>) {
+        val flight = flights.getReferenceById(flightId)
+        val fareClasses = fares.findAllById(seats.map { it.fareClassId }.distinct()).associateBy { it.id }
+        this.seats.deleteByFlightId(flightId)
+        this.seats.flush()
+        this.seats.saveAll(
+            seats.map { seat ->
+                FlightSeatEntity(
+                    id = UUID.randomUUID(),
+                    flight = flight,
+                    fareClass = fareClasses.getValue(seat.fareClassId),
+                    seatNumber = seat.seatNumber.value,
+                    status = seat.status.name,
+                    version = seat.version,
+                )
+            },
+        )
+    }
+
+    override fun countSeats(flightId: UUID): Int = seats.countByFlightId(flightId).toInt()
+
+    override fun findDeparturesBetween(from: Instant, before: Instant): List<Flight> =
+        flights.findByDepartureAtGreaterThanEqualAndDepartureAtLessThan(from, before).map(::toDomainWithLayout)
+
+    private fun toDomainWithLayout(entity: FlightEntity): Flight {
+        val maxRow = seats.findByFlightIdOrderBySeatNumber(entity.id)
+            .maxOfOrNull { it.seatNumber.dropLast(1).toInt() }
+        val mapped = FlightMapper.toDomain(entity)
+        return if (maxRow == null) mapped else mapped.copy(seatRows = maxRow)
+    }
+
+    private fun FlightEntity.syncFares(incoming: List<FareClass>) {
+        val existingById = fares.associateBy { it.id }
+        val incomingIds = incoming.map { it.id }.toSet()
+        this.fares.removeIf { it.id !in incomingIds }
+        incoming.forEach { fare ->
+            when (val current = existingById[fare.id]) {
+                null -> this.fares.add(
+                    FareClassEntity(
+                        id = fare.id,
+                        flight = this,
+                        cabin = fare.cabin.name,
+                        basePriceAmount = fare.price.amount,
+                        currency = fare.price.currency,
+                        multiplier = fare.multiplier,
+                    ),
+                )
+                else -> current.apply {
+                    cabin = fare.cabin.name
+                    basePriceAmount = fare.price.amount
+                    currency = fare.price.currency
+                    multiplier = fare.multiplier
+                }
+            }
+        }
+    }
+}

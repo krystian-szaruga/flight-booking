@@ -2,18 +2,44 @@ spring:
   application:
     name: flight-booking
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/flights}
-    username: ${DB_USER:flights}
-    password: ${DB_PASSWORD:flights}
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 200
+        order_inserts: true
   flyway:
     enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI}
+
+app:
+  security:
+    feed:
+      audience: ${OIDC_AUDIENCE}
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+
+catalogue:
+  providers:
+    file:
+      enabled: ${FILE_PROVIDER_ENABLED}
+      location: ${FILE_PROVIDER_LOCATION}
+  pull:
+    enabled: ${PULL_ENABLED}
+    on-startup: ${PULL_ON_STARTUP}
+    cron: ${PULL_CRON}
+    horizon-days: ${PULL_HORIZON_DAYS}
