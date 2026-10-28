@@ -1,8 +1,8 @@
 package dev.maxaure.flightbooking.web.reservation
 
-import dev.maxaure.flightbooking.application.reservation.ReservationUseCase
-import dev.maxaure.flightbooking.domain.catalogue.model.SeatNumber
-import dev.maxaure.flightbooking.domain.reservation.model.PassengerSeat
+import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
+import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -17,7 +17,7 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/v1/reservations")
 internal class ReservationController(
-    private val reservations: ReservationUseCase,
+    private val reservations: ReserveSeats,
 ) {
 
     @PostMapping("/flights/{flightId}")

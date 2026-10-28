@@ -1,12 +1,13 @@
 package dev.maxaure.flightbooking.provider
 
-import dev.maxaure.flightbooking.domain.catalogue.model.Cabin
-import dev.maxaure.flightbooking.domain.catalogue.model.FeedAirport
-import dev.maxaure.flightbooking.domain.catalogue.model.FeedFare
-import dev.maxaure.flightbooking.domain.catalogue.model.FeedFlight
-import dev.maxaure.flightbooking.domain.catalogue.model.FeedPage
-import dev.maxaure.flightbooking.domain.catalogue.model.FlightNumber
-import dev.maxaure.flightbooking.domain.catalogue.model.Price
+import dev.maxaure.flightbooking.domain.model.pricing.Cabin
+import dev.maxaure.flightbooking.domain.model.catalogue.FeedAirport
+import dev.maxaure.flightbooking.domain.model.catalogue.FeedFare
+import dev.maxaure.flightbooking.domain.model.catalogue.FeedFlight
+import dev.maxaure.flightbooking.domain.model.catalogue.FeedPage
+import dev.maxaure.flightbooking.domain.model.codes.FlightNumber
+import dev.maxaure.flightbooking.domain.model.pricing.Price
+import java.math.BigDecimal
 
 internal object FeedDocumentMapper {
 
@@ -24,7 +25,7 @@ internal object FeedDocumentMapper {
                     FeedFare(
                         cabin = Cabin.parse(fare.cabin),
                         price = Price(fare.amount, fare.currency),
-                        multiplier = fare.multiplier ?: java.math.BigDecimal.ONE,
+                        multiplier = fare.multiplier ?: BigDecimal.ONE,
                     )
                 },
                 seatRows = flight.seatRows,

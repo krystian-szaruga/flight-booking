@@ -1,8 +1,8 @@
 package dev.maxaure.flightbooking.scheduler
 
-import dev.maxaure.flightbooking.application.catalogue.CatalogueIngestionUseCase
-import dev.maxaure.flightbooking.application.catalogue.feed.port.FlightDataProvider
-import dev.maxaure.flightbooking.application.catalogue.repository.IngestionRunRepository
+import dev.maxaure.flightbooking.application.port.`in`.IngestCatalogue
+import dev.maxaure.flightbooking.application.port.out.FlightDataProvider
+import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
@@ -26,7 +26,7 @@ internal class SchedulingConfig {
     @Bean
     fun feedPullJob(
         providers: List<FlightDataProvider>,
-        catalogueIngestionUseCase: CatalogueIngestionUseCase,
+        catalogueIngestionUseCase: IngestCatalogue,
         ingestionRunRepository: IngestionRunRepository,
         @Value($$"${catalogue.pull.horizon-days}") horizonDays: Long,
         @Value($$"${catalogue.pull.on-startup}") pullOnStartup: Boolean,

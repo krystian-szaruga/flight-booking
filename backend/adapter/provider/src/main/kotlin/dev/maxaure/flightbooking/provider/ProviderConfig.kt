@@ -1,6 +1,6 @@
 package dev.maxaure.flightbooking.provider
 
-import dev.maxaure.flightbooking.application.catalogue.feed.port.FlightDataProvider
+import dev.maxaure.flightbooking.application.port.out.FlightDataProvider
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean

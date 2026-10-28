@@ -1,6 +1,7 @@
 package dev.maxaure.flightbooking.web.catalogue
 
-import dev.maxaure.flightbooking.application.catalogue.search.FlightSearchUseCase
+import dev.maxaure.flightbooking.application.port.`in`.SearchFlights
+import dev.maxaure.flightbooking.domain.NotFoundException
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -14,7 +15,7 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/v1/flights")
 internal class CatalogueController(
-    private val flightSearch: FlightSearchUseCase,
+    private val flightSearch: SearchFlights,
 ) {
 
     @GetMapping
@@ -29,7 +30,9 @@ internal class CatalogueController(
 
     @GetMapping("/{flightId}/seats")
     fun seatMap(@PathVariable flightId: UUID): SeatMapResponse =
-        SeatMapResponse.from(flightSearch.seatMap(flightId))
+        flightSearch.seatMap(flightId)
+            ?.let(SeatMapResponse::from)
+            ?: throw NotFoundException("Flight $flightId is not in the catalogue")
 
     @GetMapping("/deals")
     fun deals(

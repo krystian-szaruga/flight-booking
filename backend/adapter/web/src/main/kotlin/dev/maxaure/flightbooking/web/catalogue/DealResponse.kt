@@ -1,6 +1,6 @@
 package dev.maxaure.flightbooking.web.catalogue
 
-import dev.maxaure.flightbooking.application.catalogue.search.FlightDeal
+import dev.maxaure.flightbooking.domain.model.search.FlightDeal
 import java.math.BigDecimal
 import java.time.Instant
 

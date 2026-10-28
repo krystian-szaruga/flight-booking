@@ -1,18 +1,18 @@
 package dev.maxaure.flightbooking.scheduler
 
-import dev.maxaure.flightbooking.application.catalogue.CatalogueIngestionUseCase
-import dev.maxaure.flightbooking.application.catalogue.feed.port.FeedRequest
-import dev.maxaure.flightbooking.application.catalogue.feed.port.FlightDataProvider
-import dev.maxaure.flightbooking.application.catalogue.repository.IngestionRunRepository
-import dev.maxaure.flightbooking.domain.catalogue.model.IngestionRun
-import dev.maxaure.flightbooking.domain.catalogue.model.IngestionStatus
+import dev.maxaure.flightbooking.application.port.`in`.IngestCatalogue
+import dev.maxaure.flightbooking.application.port.out.FeedRequest
+import dev.maxaure.flightbooking.application.port.out.FlightDataProvider
+import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.domain.model.catalogue.IngestionRun
+import dev.maxaure.flightbooking.domain.model.catalogue.IngestionStatus
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.LocalDate
 
 internal class FeedPullJob(
     private val providers: List<FlightDataProvider>,
-    private val ingestion: CatalogueIngestionUseCase,
+    private val ingestion: IngestCatalogue,
     private val runs: IngestionRunRepository,
     private val horizonDays: Long,
     private val pullOnStartup: Boolean,

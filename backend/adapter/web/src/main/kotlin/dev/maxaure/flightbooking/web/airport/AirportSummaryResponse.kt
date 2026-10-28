@@ -1,6 +1,6 @@
 package dev.maxaure.flightbooking.web.airport
 
-import dev.maxaure.flightbooking.application.catalogue.airport.AirportSummary
+import dev.maxaure.flightbooking.domain.model.catalogue.AirportSummary
 
 internal data class AirportSummaryResponse(
     val iataCode: String,

@@ -1,10 +1,10 @@
 package dev.maxaure.flightbooking.scheduler
 
-import dev.maxaure.flightbooking.application.reservation.ReservationUseCase
+import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import org.slf4j.LoggerFactory
 
 internal class ReservationExpiryJob(
-    private val reservations: ReservationUseCase,
+    private val reservations: ReserveSeats,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 

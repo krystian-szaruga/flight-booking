@@ -1,9 +1,9 @@
 package dev.maxaure.flightbooking.persistence.mapper
 
-import dev.maxaure.flightbooking.domain.catalogue.model.SeatNumber
-import dev.maxaure.flightbooking.domain.reservation.model.PassengerSeat
-import dev.maxaure.flightbooking.domain.reservation.model.Reservation
-import dev.maxaure.flightbooking.domain.reservation.model.ReservationStatus
+import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
+import dev.maxaure.flightbooking.domain.model.reservation.Reservation
+import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
 import dev.maxaure.flightbooking.persistence.entity.ReservationEntity
 import dev.maxaure.flightbooking.persistence.entity.ReservationSeatEntity
 import java.util.UUID

@@ -1,8 +1,8 @@
 package dev.maxaure.flightbooking.persistence.mapper
 
-import dev.maxaure.flightbooking.domain.catalogue.model.Airport
-import dev.maxaure.flightbooking.domain.catalogue.model.CountryCode
-import dev.maxaure.flightbooking.domain.catalogue.model.IataCode
+import dev.maxaure.flightbooking.domain.model.catalogue.Airport
+import dev.maxaure.flightbooking.domain.model.codes.CountryCode
+import dev.maxaure.flightbooking.domain.model.codes.IataCode
 import dev.maxaure.flightbooking.persistence.entity.AirportEntity
 
 internal object AirportMapper {

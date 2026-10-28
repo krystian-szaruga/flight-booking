@@ -1,8 +1,8 @@
 package dev.maxaure.flightbooking.persistence.repository
 
-import dev.maxaure.flightbooking.application.catalogue.repository.AirportRepository
-import dev.maxaure.flightbooking.domain.catalogue.model.Airport
-import dev.maxaure.flightbooking.domain.catalogue.model.IataCode
+import dev.maxaure.flightbooking.application.port.out.AirportRepository
+import dev.maxaure.flightbooking.domain.model.catalogue.Airport
+import dev.maxaure.flightbooking.domain.model.codes.IataCode
 import dev.maxaure.flightbooking.persistence.mapper.AirportMapper
 
 internal class AirportRepositoryAdapter(

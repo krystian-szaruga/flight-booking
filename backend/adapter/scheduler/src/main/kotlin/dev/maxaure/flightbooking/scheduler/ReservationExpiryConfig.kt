@@ -1,6 +1,6 @@
 package dev.maxaure.flightbooking.scheduler
 
-import dev.maxaure.flightbooking.application.reservation.ReservationUseCase
+import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled
 internal class ReservationExpiryConfig {
 
     @Bean
-    fun reservationExpiryJob(reservations: ReservationUseCase) = ReservationExpiryJob(reservations)
+    fun reservationExpiryJob(reservations: ReserveSeats) = ReservationExpiryJob(reservations)
 
     @Bean
     fun reservationExpiryTrigger(job: ReservationExpiryJob) = ReservationExpiryTrigger(job)

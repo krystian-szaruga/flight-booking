@@ -1,10 +1,10 @@
 package dev.maxaure.flightbooking.web.catalogue
 
-import dev.maxaure.flightbooking.application.catalogue.search.FareOption
-import dev.maxaure.flightbooking.application.catalogue.search.FlightMatch
-import dev.maxaure.flightbooking.application.catalogue.search.SeatMap
-import dev.maxaure.flightbooking.application.catalogue.search.SeatView
-import dev.maxaure.flightbooking.domain.catalogue.model.FareClass
+import dev.maxaure.flightbooking.domain.model.search.FareOption
+import dev.maxaure.flightbooking.domain.model.search.FlightMatch
+import dev.maxaure.flightbooking.domain.model.seat.SeatMap
+import dev.maxaure.flightbooking.domain.model.seat.SeatView
+import dev.maxaure.flightbooking.domain.model.pricing.FareClass
 import java.math.BigDecimal
 import java.time.Instant
 

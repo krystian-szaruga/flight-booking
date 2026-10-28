@@ -1,8 +1,8 @@
 package dev.maxaure.flightbooking.provider
 
-import dev.maxaure.flightbooking.application.catalogue.feed.port.FeedRequest
-import dev.maxaure.flightbooking.application.catalogue.feed.port.FlightDataProvider
-import dev.maxaure.flightbooking.domain.catalogue.model.FeedPage
+import dev.maxaure.flightbooking.application.port.out.FeedRequest
+import dev.maxaure.flightbooking.application.port.out.FlightDataProvider
+import dev.maxaure.flightbooking.domain.model.catalogue.FeedPage
 import org.springframework.core.io.ResourceLoader
 import tools.jackson.databind.ObjectMapper
 import java.time.ZoneOffset
