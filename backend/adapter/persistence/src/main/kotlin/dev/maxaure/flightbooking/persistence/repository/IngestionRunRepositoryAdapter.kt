@@ -1,7 +1,7 @@
 package dev.maxaure.flightbooking.persistence.repository
 
-import dev.maxaure.flightbooking.application.catalogue.repository.IngestionRunRepository
-import dev.maxaure.flightbooking.domain.catalogue.model.IngestionRun
+import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.domain.model.catalogue.IngestionRun
 import dev.maxaure.flightbooking.persistence.mapper.IngestionRunMapper
 import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
@@ -24,7 +24,7 @@ internal class IngestionRunRepositoryAdapter(
             }
         }
         IngestionRunMapper.toDomain(jpa.save(entity))
-    }!!
+    }
 
     override fun findById(id: UUID): IngestionRun? =
         jpa.findById(id).map(IngestionRunMapper::toDomain).orElse(null)

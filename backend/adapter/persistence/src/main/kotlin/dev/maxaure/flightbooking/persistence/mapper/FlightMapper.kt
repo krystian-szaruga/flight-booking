@@ -1,11 +1,11 @@
 package dev.maxaure.flightbooking.persistence.mapper
 
-import dev.maxaure.flightbooking.domain.catalogue.model.Cabin
-import dev.maxaure.flightbooking.domain.catalogue.model.FareClass
-import dev.maxaure.flightbooking.domain.catalogue.model.Flight
-import dev.maxaure.flightbooking.domain.catalogue.model.FlightNumber
-import dev.maxaure.flightbooking.domain.catalogue.model.FlightStatus
-import dev.maxaure.flightbooking.domain.catalogue.model.Price
+import dev.maxaure.flightbooking.domain.model.pricing.Cabin
+import dev.maxaure.flightbooking.domain.model.pricing.FareClass
+import dev.maxaure.flightbooking.domain.model.catalogue.Flight
+import dev.maxaure.flightbooking.domain.model.codes.FlightNumber
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightStatus
+import dev.maxaure.flightbooking.domain.model.pricing.Price
 import dev.maxaure.flightbooking.persistence.entity.FareClassEntity
 import dev.maxaure.flightbooking.persistence.entity.FlightEntity
 

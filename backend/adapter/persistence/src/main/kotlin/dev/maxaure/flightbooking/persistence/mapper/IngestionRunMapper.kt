@@ -1,7 +1,7 @@
 package dev.maxaure.flightbooking.persistence.mapper
 
-import dev.maxaure.flightbooking.domain.catalogue.model.IngestionRun
-import dev.maxaure.flightbooking.domain.catalogue.model.IngestionStatus
+import dev.maxaure.flightbooking.domain.model.catalogue.IngestionRun
+import dev.maxaure.flightbooking.domain.model.catalogue.IngestionStatus
 import dev.maxaure.flightbooking.persistence.entity.IngestionRunEntity
 
 internal object IngestionRunMapper {

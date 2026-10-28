@@ -1,6 +1,6 @@
 package dev.maxaure.flightbooking.persistence.repository
 
-import dev.maxaure.flightbooking.application.catalogue.repository.RecordWriter
+import dev.maxaure.flightbooking.application.port.out.RecordWriter
 import org.springframework.transaction.support.TransactionTemplate
 
 internal class TransactionalRecordWriter(

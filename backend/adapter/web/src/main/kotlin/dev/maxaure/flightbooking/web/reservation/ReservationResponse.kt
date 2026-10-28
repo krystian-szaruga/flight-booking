@@ -1,6 +1,6 @@
 package dev.maxaure.flightbooking.web.reservation
 
-import dev.maxaure.flightbooking.domain.reservation.model.Reservation
+import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import java.time.Instant
 
 internal data class ReservationResponse(

@@ -1,7 +1,7 @@
 package dev.maxaure.flightbooking.persistence.repository
 
-import dev.maxaure.flightbooking.application.catalogue.airport.AirportDirectory
-import dev.maxaure.flightbooking.domain.catalogue.model.Airport
+import dev.maxaure.flightbooking.application.port.out.AirportDirectory
+import dev.maxaure.flightbooking.domain.model.catalogue.Airport
 import dev.maxaure.flightbooking.persistence.mapper.AirportMapper
 import org.springframework.data.domain.PageRequest
 import org.springframework.transaction.annotation.Transactional

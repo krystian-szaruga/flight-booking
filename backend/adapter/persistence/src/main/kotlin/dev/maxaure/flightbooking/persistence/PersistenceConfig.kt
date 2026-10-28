@@ -1,12 +1,12 @@
 package dev.maxaure.flightbooking.persistence
 
-import dev.maxaure.flightbooking.application.catalogue.repository.AirportRepository
-import dev.maxaure.flightbooking.application.catalogue.repository.FlightRepository
-import dev.maxaure.flightbooking.application.catalogue.repository.IngestionRunRepository
-import dev.maxaure.flightbooking.application.catalogue.repository.RecordWriter
-import dev.maxaure.flightbooking.application.catalogue.airport.AirportDirectory
-import dev.maxaure.flightbooking.application.catalogue.search.FlightSearch
-import dev.maxaure.flightbooking.application.reservation.ReservationRepository
+import dev.maxaure.flightbooking.application.port.out.AirportRepository
+import dev.maxaure.flightbooking.application.port.out.FlightRepository
+import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.application.port.out.RecordWriter
+import dev.maxaure.flightbooking.application.port.out.AirportDirectory
+import dev.maxaure.flightbooking.application.port.out.FlightSearch
+import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.persistence.repository.AirportDirectoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.AirportRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.FlightRepositoryAdapter

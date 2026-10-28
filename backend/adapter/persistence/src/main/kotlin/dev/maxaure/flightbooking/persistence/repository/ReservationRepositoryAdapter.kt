@@ -1,11 +1,11 @@
 package dev.maxaure.flightbooking.persistence.repository
 
-import dev.maxaure.flightbooking.application.reservation.HoldOutcome
-import dev.maxaure.flightbooking.application.reservation.ReservationRepository
-import dev.maxaure.flightbooking.domain.catalogue.model.SeatNumber
-import dev.maxaure.flightbooking.domain.reservation.model.PassengerSeat
-import dev.maxaure.flightbooking.domain.reservation.model.Reservation
-import dev.maxaure.flightbooking.domain.reservation.model.ReservationStatus
+import dev.maxaure.flightbooking.application.port.out.HoldOutcome
+import dev.maxaure.flightbooking.application.port.out.ReservationRepository
+import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
+import dev.maxaure.flightbooking.domain.model.reservation.Reservation
+import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
 import dev.maxaure.flightbooking.persistence.entity.FlightSeatEntity
 import dev.maxaure.flightbooking.persistence.entity.ReservationEntity
 import dev.maxaure.flightbooking.persistence.mapper.ReservationMapper
@@ -22,16 +22,17 @@ internal class ReservationRepositoryAdapter(
 
     override fun findById(id: UUID): Reservation? = transactions.execute { load(id) }
 
-    override fun save(reservation: Reservation): Reservation = transactions.execute {        val existing = reservations.findById(reservation.id).orElse(null)
-        val saved = when (existing) {
-            null -> reservations.save(ReservationMapper.toEntity(reservation))
-            else -> existing.apply {
-                status = reservation.status.name
-                expiresAt = reservation.expiresAt
+    override fun save(reservation: Reservation): Reservation =
+        transactions.execute {
+            val saved = when (val existing = reservations.findById(reservation.id).orElse(null)) {
+                null -> reservations.save(ReservationMapper.toEntity(reservation))
+                else -> existing.apply {
+                    status = reservation.status.name
+                    expiresAt = reservation.expiresAt
+                }
             }
+            ReservationMapper.toDomain(saved, reservation.seats)
         }
-        ReservationMapper.toDomain(saved, reservation.seats)
-    }!!
 
     override fun holdSeats(reservation: Reservation): HoldOutcome = transactions.execute {
         val wanted = reservation.seats.map { it.seatNumber.value }
@@ -57,7 +58,7 @@ internal class ReservationRepositoryAdapter(
             },
         )
         HoldOutcome.Held(reservation)
-    }!!
+    }
 
     override fun releaseSeats(reservationId: UUID): Reservation? = transactions.execute {
         val locked = reservations.lockById(reservationId) ?: return@execute null
@@ -78,7 +79,7 @@ internal class ReservationRepositoryAdapter(
     override fun findExpired(at: Instant, limit: Int): List<Reservation> = transactions.execute {
         reservations.findPendingExpired(at, PageRequest.of(0, limit))
             .mapNotNull { entity -> load(entity.id) }
-    }!!
+    }
 
     private fun load(id: UUID): Reservation? {
         val entity = reservations.findById(id).orElse(null) ?: return null

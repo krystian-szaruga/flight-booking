@@ -1,10 +1,10 @@
 package dev.maxaure.flightbooking.persistence.repository
 
-import dev.maxaure.flightbooking.application.catalogue.repository.FlightRepository
-import dev.maxaure.flightbooking.domain.catalogue.model.FareClass
-import dev.maxaure.flightbooking.domain.catalogue.model.Flight
-import dev.maxaure.flightbooking.domain.catalogue.model.FlightIdentity
-import dev.maxaure.flightbooking.domain.catalogue.model.Seat
+import dev.maxaure.flightbooking.application.port.out.FlightRepository
+import dev.maxaure.flightbooking.domain.model.pricing.FareClass
+import dev.maxaure.flightbooking.domain.model.catalogue.Flight
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightIdentity
+import dev.maxaure.flightbooking.domain.model.seat.Seat
 import dev.maxaure.flightbooking.persistence.entity.FareClassEntity
 import dev.maxaure.flightbooking.persistence.entity.FlightEntity
 import dev.maxaure.flightbooking.persistence.entity.FlightSeatEntity
