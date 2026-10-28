@@ -44,7 +44,7 @@ export function ResultsPage() {
           {date}
           {cabin ? ` · ${cabin.replace('_', ' ').toLowerCase()}` : ''}
         </p>
-        <Link to="/">Change search</Link>
+        <Link to="/search">Change search</Link>
       </div>
 
       {error && <p className="error">{error}</p>}

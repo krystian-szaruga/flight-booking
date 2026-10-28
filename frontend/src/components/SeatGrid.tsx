@@ -14,7 +14,13 @@ function seatsByRow(seats: SeatResponse[]): Map<number, SeatResponse[]> {
   return new Map([...rows.entries()].sort((a, b) => a[0] - b[0]))
 }
 
-export function SeatGrid({ seats }: { seats: SeatResponse[] }) {
+interface SeatGridProps {
+  seats: SeatResponse[]
+  selected?: ReadonlySet<string>
+  onToggle?: (seat: SeatResponse) => void
+}
+
+export function SeatGrid({ seats, selected, onToggle }: SeatGridProps) {
   const rows = seatsByRow(seats)
 
   return (
@@ -22,19 +28,26 @@ export function SeatGrid({ seats }: { seats: SeatResponse[] }) {
       {[...rows.entries()].map(([row, rowSeats]) => (
         <div className="seat-row" role="row" key={row}>
           <span className="seat-row-label">{row}</span>
-          {rowSeats.map((seat) => (
-            <button
-              key={seat.seat}
-              type="button"
-              role="gridcell"
-              className={`seat seat-${seat.status.toLowerCase()}`}
-              disabled={seat.status !== 'AVAILABLE'}
-              title={`${seat.seat} · ${seat.cabin.replace('_', ' ').toLowerCase()} · ${seat.price} ${seat.currency}`}
-              aria-label={`${seat.seat}, ${seat.status.toLowerCase()}`}
-            >
-              {seat.seat.replace(/^\d+/, '')}
-            </button>
-          ))}
+          {rowSeats.map((seat) => {
+            const isSelected = selected?.has(seat.seat) ?? false
+            const classes = ['seat', `seat-${seat.status.toLowerCase()}`]
+            if (isSelected) classes.push('seat-selected')
+            return (
+              <button
+                key={seat.seat}
+                type="button"
+                role="gridcell"
+                className={classes.join(' ')}
+                disabled={seat.status !== 'AVAILABLE'}
+                aria-pressed={isSelected}
+                title={`${seat.seat} · ${seat.cabin.replace('_', ' ').toLowerCase()} · ${seat.price} ${seat.currency}`}
+                aria-label={`${seat.seat}, ${isSelected ? 'selected' : seat.status.toLowerCase()}`}
+                onClick={() => onToggle?.(seat)}
+              >
+                {seat.seat.replace(/^\d+/, '')}
+              </button>
+            )
+          })}
         </div>
       ))}
     </div>

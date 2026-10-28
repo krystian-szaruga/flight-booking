@@ -50,3 +50,36 @@ export interface SearchFlightsParams {
   cabin?: Cabin
   zone?: string
 }
+
+export interface AirportSummary {
+  iataCode: string
+  name: string
+  city: string
+  countryCode: string
+}
+
+export interface GroundedSeat {
+  seat: string
+  passengerName: string
+}
+
+export interface ReservationResponse {
+  reservationId: string
+  flightId: string
+  status: 'PENDING' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED'
+  expiresAt: string | null
+  seats: GroundedSeat[]
+}
+
+export interface DealResponse {
+  flightId: string
+  flightNumber: string
+  origin: string
+  destination: string
+  departureAt: string
+  arrivalAt: string
+  cabin: Cabin
+  price: number
+  currency: string
+  seatsAvailable: number
+}

@@ -1,4 +1,12 @@
-import type { FlightSummaryResponse, SearchFlightsParams, SeatMapResponse } from './types'
+import type {
+  AirportSummary,
+  DealResponse,
+  FlightSummaryResponse,
+  GroundedSeat,
+  ReservationResponse,
+  SearchFlightsParams,
+  SeatMapResponse,
+} from './types'
 
 export class ApiError extends Error {
   constructor(
@@ -12,6 +20,24 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, { signal, headers: { Accept: 'application/json' } })
+  if (!response.ok) {
+    throw new ApiError(response.status, await problemDetail(response))
+  }
+  return (await response.json()) as T
+}
+
+async function send<T>(
+  method: 'POST' | 'DELETE',
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await fetch(path, {
+    method,
+    signal,
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
   if (!response.ok) {
     throw new ApiError(response.status, await problemDetail(response))
   }
@@ -43,4 +69,34 @@ export function searchFlights(
 
 export function getSeatMap(flightId: string, signal?: AbortSignal): Promise<SeatMapResponse> {
   return request<SeatMapResponse>(`/api/v1/flights/${encodeURIComponent(flightId)}/seats`, signal)
+}
+
+export function getDeals(limit = 6, signal?: AbortSignal): Promise<DealResponse[]> {
+  return request<DealResponse[]>(`/api/v1/flights/deals?limit=${limit}`, signal)
+}
+
+export function searchAirports(query: string, signal?: AbortSignal): Promise<AirportSummary[]> {
+  return request<AirportSummary[]>(`/api/v1/airports?q=${encodeURIComponent(query)}`, signal)
+}
+
+export function holdSeats(
+  flightId: string,
+  seats: GroundedSeat[],
+  signal?: AbortSignal,
+): Promise<ReservationResponse> {
+  return send<ReservationResponse>(
+    'POST',
+    `/api/v1/reservations/flights/${encodeURIComponent(flightId)}`,
+    { seats },
+    signal,
+  )
+}
+
+export function cancelReservation(reservationId: string, signal?: AbortSignal): Promise<ReservationResponse> {
+  return send<ReservationResponse>(
+    'DELETE',
+    `/api/v1/reservations/${encodeURIComponent(reservationId)}`,
+    undefined,
+    signal,
+  )
 }

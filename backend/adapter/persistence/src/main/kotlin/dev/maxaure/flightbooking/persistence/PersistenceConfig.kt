@@ -4,14 +4,24 @@ import dev.maxaure.flightbooking.application.catalogue.repository.AirportReposit
 import dev.maxaure.flightbooking.application.catalogue.repository.FlightRepository
 import dev.maxaure.flightbooking.application.catalogue.repository.IngestionRunRepository
 import dev.maxaure.flightbooking.application.catalogue.repository.RecordWriter
+import dev.maxaure.flightbooking.application.catalogue.airport.AirportDirectory
+import dev.maxaure.flightbooking.application.catalogue.search.FlightSearch
+import dev.maxaure.flightbooking.application.reservation.ReservationRepository
+import dev.maxaure.flightbooking.persistence.repository.AirportDirectoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.AirportRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.FlightRepositoryAdapter
+import dev.maxaure.flightbooking.persistence.repository.FlightSearchAdapter
 import dev.maxaure.flightbooking.persistence.repository.IngestionRunRepositoryAdapter
+import dev.maxaure.flightbooking.persistence.repository.ReservationRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.SpringAirportJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringFareClassJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringFlightJpaRepository
+import dev.maxaure.flightbooking.persistence.repository.SpringFlightSearchJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringFlightSeatJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringIngestionRunJpaRepository
+import dev.maxaure.flightbooking.persistence.repository.SpringReservationJpaRepository
+import dev.maxaure.flightbooking.persistence.repository.SpringReservationSeatJpaRepository
+import dev.maxaure.flightbooking.persistence.repository.SpringSeatMapJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.TransactionalRecordWriter
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
@@ -49,4 +59,25 @@ internal class PersistenceConfig {
     @Bean
     fun recordWriter(transactions: PlatformTransactionManager): RecordWriter =
         TransactionalRecordWriter(TransactionTemplate(transactions))
+
+    @Bean
+    fun flightSearch(
+        search: SpringFlightSearchJpaRepository,
+        seats: SpringSeatMapJpaRepository,
+    ): FlightSearch = FlightSearchAdapter(search, seats)
+
+    @Bean
+    fun reservationRepository(
+        reservations: SpringReservationJpaRepository,
+        reservationSeats: SpringReservationSeatJpaRepository,
+        transactions: PlatformTransactionManager,
+    ): ReservationRepository = ReservationRepositoryAdapter(
+        reservations,
+        reservationSeats,
+        TransactionTemplate(transactions),
+    )
+
+    @Bean
+    fun airportDirectory(jpa: SpringAirportJpaRepository): AirportDirectory =
+        AirportDirectoryAdapter(jpa)
 }

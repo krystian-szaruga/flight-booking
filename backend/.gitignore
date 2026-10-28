@@ -49,4 +49,4 @@ bin/
 local-env
 podman-test.sh
 feed-large.json
-http/*
+http/

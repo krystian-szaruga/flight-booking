@@ -19,6 +19,10 @@ internal class DomainExceptionHandler {
     fun invalidValue(ex: InvalidDomainValueException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.message ?: "Invalid value")
 
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun illegalArgument(ex: IllegalArgumentException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.message ?: "Invalid value")
+
     @ExceptionHandler(ConflictException::class)
     fun conflict(ex: ConflictException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.message ?: "Conflict")
