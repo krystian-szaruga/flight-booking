@@ -16,6 +16,8 @@ interface ReservationRepository {
     fun releaseSeats(reservationId: UUID): Reservation?
 
     fun findExpired(at: Instant, limit: Int): List<Reservation>
+
+    fun findByUserId(userId: UUID): List<Reservation>
 }
 
 sealed interface HoldOutcome {

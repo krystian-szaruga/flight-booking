@@ -16,16 +16,20 @@ spring:
         order_inserts: true
   flyway:
     enabled: true
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${OIDC_ISSUER_URI}
 
 app:
-  security:
-    feed:
-      audience: ${OIDC_AUDIENCE}
+  auth:
+    jwt-secret: ${JWT_SECRET}
+    jwt-ttl-minutes: ${JWT_TTL_MINUTES:60}
+    cookie:
+      secure: ${COOKIE_SECURE:true}
+      same-site: ${COOKIE_SAME_SITE:Lax}
+    login-attempts:
+      max-failures: ${LOGIN_MAX_FAILURES:5}
+      window-minutes: ${LOGIN_ATTEMPT_WINDOW_MINUTES:15}
+    revoked-token:
+      purge-enabled: ${REVOKED_TOKEN_PURGE_ENABLED:true}
+      purge-cron: ${REVOKED_TOKEN_PURGE_CRON:0 0 * * * *}
 
 management:
   endpoints:

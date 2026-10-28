@@ -9,6 +9,7 @@ dependencies {
     implementation(project(":adapter:persistence"))
     implementation(project(":adapter:provider"))
     implementation(project(":adapter:scheduler"))
+    implementation(project(":adapter:security"))
 
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.bundles.spring.runtime)
@@ -16,12 +17,11 @@ dependencies {
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.spring.boot.starter.security)
-    implementation(libs.spring.boot.starter.oauth2.resource.server)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.extensions.spring)
     testImplementation(libs.testcontainers.postgresql)
-    testImplementation(libs.testcontainers.keycloak)
+    testImplementation(libs.spring.boot.starter.webflux)
 
 }

@@ -81,6 +81,10 @@ internal class ReservationRepositoryAdapter(
             .mapNotNull { entity -> load(entity.id) }
     }
 
+    override fun findByUserId(userId: UUID): List<Reservation> = transactions.execute {
+        reservations.findByUserId(userId).map { entity -> load(entity.id) ?: error("Missing reservation ${entity.id}") }
+    }
+
     private fun load(id: UUID): Reservation? {
         val entity = reservations.findById(id).orElse(null) ?: return null
         val numbers = heldSeatNumbers(id)

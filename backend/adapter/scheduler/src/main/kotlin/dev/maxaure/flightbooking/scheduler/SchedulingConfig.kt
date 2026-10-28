@@ -30,13 +30,14 @@ internal class SchedulingConfig {
         ingestionRunRepository: IngestionRunRepository,
         @Value($$"${catalogue.pull.horizon-days}") horizonDays: Long,
         @Value($$"${catalogue.pull.on-startup}") pullOnStartup: Boolean,
+        clock: Clock,
     ) = FeedPullJob(
         providers,
         catalogueIngestionUseCase,
         ingestionRunRepository,
         horizonDays,
         pullOnStartup,
-        Clock.systemUTC(),
+        clock,
     )
 
     @Bean

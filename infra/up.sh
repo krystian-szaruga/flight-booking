@@ -12,12 +12,12 @@ set -a
 . ./.env
 set +a
 
-for name in POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD KC_BOOTSTRAP_ADMIN_PASSWORD FEED_CLIENT_SECRET; do
+for name in POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD; do
     if [[ -z "${!name:-}" ]]; then
         echo "Environment variable $name is not set in infra/.env" >&2
         exit 1
     fi
 done
 
-envsubst '${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${KC_BOOTSTRAP_ADMIN_PASSWORD} ${FEED_CLIENT_SECRET}' \
+envsubst '${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD}' \
     < infrastructure.yaml | podman kube play - "$@"

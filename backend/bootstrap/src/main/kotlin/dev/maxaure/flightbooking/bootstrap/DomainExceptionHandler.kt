@@ -3,8 +3,14 @@ package dev.maxaure.flightbooking.bootstrap
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.NotFoundException
+import dev.maxaure.flightbooking.domain.model.user.EmailAlreadyRegistered
+import dev.maxaure.flightbooking.domain.model.user.InvalidCredentials
+import dev.maxaure.flightbooking.domain.model.user.TooManyLoginAttempts
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
@@ -26,4 +32,25 @@ internal class DomainExceptionHandler {
     @ExceptionHandler(ConflictException::class)
     fun conflict(ex: ConflictException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.message ?: "Conflict")
+
+    @ExceptionHandler(EmailAlreadyRegistered::class)
+    fun emailTaken(): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "An account with this email already exists")
+
+    @ExceptionHandler(InvalidCredentials::class)
+    fun invalidCredentials(): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid credentials")
+
+    @ExceptionHandler(TooManyLoginAttempts::class)
+    fun tooManyAttempts(ex: TooManyLoginAttempts): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header(HttpHeaders.RETRY_AFTER, ex.retryAfter.seconds.coerceAtLeast(1).toString())
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.message ?: "Too many attempts"))
+
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun invalidBody(ex: MethodArgumentNotValidException): ProblemDetail =
+        ProblemDetail.forStatus(HttpStatus.BAD_REQUEST).apply {
+            title = "Validation failed"
+            setProperty("errors", ex.bindingResult.fieldErrors.associate { it.field to it.defaultMessage })
+        }
 }
