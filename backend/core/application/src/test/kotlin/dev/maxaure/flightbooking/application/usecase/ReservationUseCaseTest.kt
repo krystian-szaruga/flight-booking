@@ -2,12 +2,17 @@ package dev.maxaure.flightbooking.application.usecase
 
 import dev.maxaure.flightbooking.application.port.out.HoldOutcome
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
+import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
+import dev.maxaure.flightbooking.domain.model.user.Email
+import dev.maxaure.flightbooking.domain.model.user.PasswordHash
+import dev.maxaure.flightbooking.domain.model.user.User
+import dev.maxaure.flightbooking.domain.model.user.UserId
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -31,16 +36,21 @@ class ReservationUseCaseTest {
 
     private val flightId = UUID.randomUUID()
     private val repository = InMemoryReservationRepository { now }
-    private val useCase = ReservationUseCase(repository, clock)
+    private val userId = UserId.new()
+    private val users = InMemoryUserRepository(createUser(userId))
+    private val useCase = ReservationUseCase(repository, users, clock)
+
+    private fun createUser(id: UserId) =
+        User.register(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
 
     private fun seats(vararg numbers: String) =
         numbers.map { PassengerSeat(SeatNumber.of(it), "Passenger $it") }
 
     @Test
     fun `when a seat is already held then a second hold of the same seat is rejected and the first survives`() {
-        val first = useCase.hold(flightId, seats("12A", "12B"))
+        val first = useCase.hold(userId, flightId, seats("12A", "12B"))
 
-        val failure = assertFailsWith<ConflictException> { useCase.hold(flightId, seats("12B", "12C")) }
+        val failure = assertFailsWith<ConflictException> { useCase.hold(userId, flightId, seats("12B", "12C")) }
 
         assertTrue("12B" in failure.message.orEmpty())
         assertEquals(listOf("12A", "12B"), repository.heldSeats(flightId))
@@ -49,18 +59,18 @@ class ReservationUseCaseTest {
 
     @Test
     fun `when a conflicting hold is rejected then none of its other seats stay held`() {
-        useCase.hold(flightId, seats("12A"))
+        useCase.hold(userId, flightId, seats("12A"))
 
-        assertFailsWith<ConflictException> { useCase.hold(flightId, seats("12C", "12A")) }
+        assertFailsWith<ConflictException> { useCase.hold(userId, flightId, seats("12C", "12A")) }
 
         assertEquals(listOf("12A"), repository.heldSeats(flightId))
     }
 
     @Test
     fun `when a hold is cancelled then its seats become available again`() {
-        val hold = useCase.hold(flightId, seats("12A", "12B"))
+        val hold = useCase.hold(userId, flightId, seats("12A", "12B"))
 
-        val cancelled = useCase.cancel(hold.id)
+        val cancelled = useCase.cancel(userId, hold.id)
 
         assertEquals(ReservationStatus.CANCELLED, cancelled.status)
         assertNull(cancelled.expiresAt)
@@ -69,9 +79,9 @@ class ReservationUseCaseTest {
 
     @Test
     fun `when a hold has expired then the sweeper frees its seats and marks it expired`() {
-        val stale = useCase.hold(flightId, seats("12A"))
+        val stale = useCase.hold(userId, flightId, seats("12A"))
         now = now.plus(Duration.ofMinutes(10))
-        val fresh = useCase.hold(flightId, seats("12B"))
+        val fresh = useCase.hold(userId, flightId, seats("12B"))
         now = now.plus(Duration.ofMinutes(6))
 
         val released = useCase.releaseExpired()
@@ -84,16 +94,69 @@ class ReservationUseCaseTest {
 
     @Test
     fun `when an expired hold is cancelled by the client then it is reported as a conflict`() {
-        val stale = useCase.hold(flightId, seats("12A"))
+        val stale = useCase.hold(userId, flightId, seats("12A"))
         now = now.plus(Duration.ofMinutes(16))
         useCase.releaseExpired()
 
-        assertFailsWith<ConflictException> { useCase.cancel(stale.id) }
+        assertFailsWith<ConflictException> { useCase.cancel(userId, stale.id) }
     }
 
     @Test
     fun `when an unknown reservation is cancelled then it is reported as not found`() {
-        assertFailsWith<NotFoundException> { useCase.cancel(UUID.randomUUID()) }
+        assertFailsWith<NotFoundException> { useCase.cancel(userId, UUID.randomUUID()) }
+    }
+
+    @Test
+    fun `when a hold is placed then it is recorded against the authenticated user`() {
+        val hold = useCase.hold(userId, flightId, seats("12A"))
+
+        assertEquals(userId.value, repository.findById(hold.id)?.userId)
+    }
+
+    @Test
+    fun `when an unknown user places a hold then it is rejected before any seat is taken`() {
+        val stranger = UserId.new()
+
+        assertFailsWith<NotFoundException> { useCase.hold(stranger, flightId, seats("12A")) }
+
+        assertEquals(emptyList(), repository.heldSeats(flightId))
+    }
+
+    @Test
+    fun `when user B cancels user A's reservation then it is reported as not found and the hold survives`() {
+        val hold = useCase.hold(userId, flightId, seats("12A"))
+        val intruder = UserId.new()
+        users.save(createUser(intruder))
+
+        assertFailsWith<NotFoundException> { useCase.cancel(intruder, hold.id) }
+
+        assertEquals(listOf("12A"), repository.heldSeats(flightId))
+        assertEquals(ReservationStatus.PENDING, repository.findById(hold.id)?.status)
+    }
+
+    @Test
+    fun `when the committed reservation is cancelled by its owner then nobody else's reservation is touched`() {
+        val mine = useCase.hold(userId, flightId, seats("12A"))
+        val other = UserId.new()
+        users.save(createUser(other))
+        val theirs = useCase.hold(other, flightId, seats("12B"))
+
+        val cancelled = useCase.cancel(userId, mine.id)
+
+        assertEquals(ReservationStatus.CANCELLED, cancelled.status)
+        assertEquals(userId.value, cancelled.userId)
+        assertEquals(listOf("12B"), repository.heldSeats(flightId))
+        assertEquals(ReservationStatus.PENDING, repository.findById(theirs.id)?.status)
+    }
+
+    private class InMemoryUserRepository(vararg initial: User) : UserRepository {
+        private val users = initial.associateBy { it.id }.toMutableMap()
+
+        override fun findById(id: UserId): User? = users[id]
+
+        override fun findByEmail(email: Email): User? = users.values.firstOrNull { it.email == email }
+
+        override fun save(user: User): User = user.also { users[it.id] = it }
     }
 
     private class InMemoryReservationRepository(
@@ -138,5 +201,10 @@ class ReservationUseCaseTest {
             reservations.values
                 .filter { it.status == ReservationStatus.PENDING && !it.expiresAt!!.isAfter(at) }
                 .take(limit)
+
+        override fun findByUserId(userId: UUID): List<Reservation> =
+            reservations.values
+                .filter { it.userId == userId }
+                .sortedByDescending { it.createdAt }
     }
 }

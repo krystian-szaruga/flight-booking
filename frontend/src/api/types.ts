@@ -71,6 +71,12 @@ export interface ReservationResponse {
   seats: GroundedSeat[]
 }
 
+export interface UserResponse {
+  id: string
+  email: string
+  createdAt: string
+}
+
 export interface DealResponse {
   flightId: string
   flightNumber: string

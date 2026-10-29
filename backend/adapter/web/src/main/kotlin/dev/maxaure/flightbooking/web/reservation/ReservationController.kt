@@ -1,11 +1,15 @@
 package dev.maxaure.flightbooking.web.reservation
 
+import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
+import dev.maxaure.flightbooking.domain.model.user.UserId
+import dev.maxaure.flightbooking.web.auth.CurrentUser
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -18,22 +22,32 @@ import java.util.UUID
 @RequestMapping("/api/v1/reservations")
 internal class ReservationController(
     private val reservations: ReserveSeats,
+    private val myReservations: ListMyReservations,
 ) {
+
+    @GetMapping
+    fun list(@CurrentUser userId: UserId): List<ReservationResponse> =
+        myReservations.list(userId).map(ReservationResponse::from)
 
     @PostMapping("/flights/{flightId}")
     @ResponseStatus(HttpStatus.CREATED)
     fun hold(
+        @CurrentUser userId: UserId,
         @PathVariable flightId: UUID,
         @RequestBody @Valid request: HoldSeatsRequest,
     ): ReservationResponse =
         ReservationResponse.from(
             reservations.hold(
+                userId = userId,
                 flightId = flightId,
                 seats = request.seats.map { PassengerSeat(SeatNumber.of(it.seat), it.passengerName.trim()) },
             ),
         )
 
     @DeleteMapping("/{reservationId}")
-    fun cancel(@PathVariable reservationId: UUID): ReservationResponse =
-        ReservationResponse.from(reservations.cancel(reservationId))
+    fun cancel(
+        @CurrentUser userId: UserId,
+        @PathVariable reservationId: UUID,
+    ): ReservationResponse =
+        ReservationResponse.from(reservations.cancel(userId, reservationId))
 }

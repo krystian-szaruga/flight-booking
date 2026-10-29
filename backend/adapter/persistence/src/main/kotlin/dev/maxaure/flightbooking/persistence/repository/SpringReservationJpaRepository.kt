@@ -48,6 +48,15 @@ internal interface SpringReservationJpaRepository : JpaRepository<ReservationEnt
         """,
     )
     fun findPendingExpired(@Param("at") at: Instant, pageable: Pageable): List<ReservationEntity>
+
+    @Query(
+        """
+        select r from ReservationEntity r
+        where r.userId = :userId
+        order by r.createdAt desc
+        """,
+    )
+    fun findByUserId(@Param("userId") userId: UUID): List<ReservationEntity>
 }
 
 internal interface SpringReservationSeatJpaRepository : JpaRepository<ReservationSeatEntity, UUID> {

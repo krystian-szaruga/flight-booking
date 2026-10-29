@@ -10,54 +10,6 @@ spec:
       storage: 1Gi
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: keycloak-realm
-data:
-  realm-flights.json: |
-    {
-      "realm": "flights",
-      "enabled": true,
-      "sslRequired": "none",
-      "registrationAllowed": false,
-      "accessTokenLifespan": 300,
-      "clients": [
-        {
-          "clientId": "feed-ingest-client",
-          "enabled": true,
-          "publicClient": false,
-          "secret": "${FEED_CLIENT_SECRET}",
-          "serviceAccountsEnabled": true,
-          "standardFlowEnabled": false,
-          "directAccessGrantsEnabled": false,
-          "protocolMappers": [
-            {
-              "name": "audience",
-              "protocol": "openid-connect",
-              "protocolMapper": "oidc-audience-mapper",
-              "config": {
-                "included.custom.audience": "flight-booking-api",
-                "access.token.claim": "true",
-                "introspection.token.claim": "true"
-              }
-            }
-          ]
-        }
-      ],
-      "clientScopes": [
-        {
-          "name": "feed:ingest",
-          "protocol": "openid-connect",
-          "attributes": {
-            "include.in.token.scope": "true",
-            "display.on.consent.screen": "false"
-          }
-        }
-      ],
-      "defaultDefaultClientScopes": ["web-origins", "role_list", "roles", "profile", "email", "feed:ingest"]
-    }
----
-apiVersion: v1
 kind: Pod
 metadata:
   name: flights-infra
@@ -78,28 +30,7 @@ spec:
       volumeMounts:
         - name: pgdata
           mountPath: /var/lib/postgresql/18/docker
-    - name: keycloak
-      image: quay.io/keycloak/keycloak:26.3
-      args:
-        - start-dev
-        - --import-realm
-        - --http-port=8081
-      env:
-        - name: KC_BOOTSTRAP_ADMIN_USERNAME
-          value: admin
-        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-          value: "${KC_BOOTSTRAP_ADMIN_PASSWORD}"
-      ports:
-        - containerPort: 8081
-          hostPort: 8081
-      volumeMounts:
-        - name: keycloak-realm
-          mountPath: /opt/keycloak/data/import
-          readOnly: true
   volumes:
     - name: pgdata
       persistentVolumeClaim:
         claimName: pgdata
-    - name: keycloak-realm
-      configMap:
-        name: keycloak-realm

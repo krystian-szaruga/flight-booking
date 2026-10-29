@@ -1,7 +1,12 @@
 package dev.maxaure.flightbooking.bootstrap
 
 import dev.maxaure.flightbooking.application.port.`in`.IngestCatalogue
+import dev.maxaure.flightbooking.application.port.`in`.AuthenticateUser
+import dev.maxaure.flightbooking.application.port.`in`.GetCurrentUser
+import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
+import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
+import dev.maxaure.flightbooking.application.port.`in`.RevokeToken
 import dev.maxaure.flightbooking.application.port.`in`.SearchAirports
 import dev.maxaure.flightbooking.application.port.`in`.SearchFlights
 import dev.maxaure.flightbooking.application.port.out.AirportDirectory
@@ -9,10 +14,19 @@ import dev.maxaure.flightbooking.application.port.out.AirportRepository
 import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.application.port.out.LoginAttemptLimiter
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
+import dev.maxaure.flightbooking.application.port.out.UserRepository
+import dev.maxaure.flightbooking.application.port.out.RevokedTokenRepository
+import dev.maxaure.flightbooking.application.port.out.PasswordHasher
 import dev.maxaure.flightbooking.application.usecase.CatalogueIngestionUseCase
 import dev.maxaure.flightbooking.application.usecase.FlightSearchUseCase
+import dev.maxaure.flightbooking.application.usecase.RegisterUserUseCase
+import dev.maxaure.flightbooking.application.usecase.AuthenticateUserUseCase
+import dev.maxaure.flightbooking.application.usecase.GetCurrentUserUseCase
+import dev.maxaure.flightbooking.application.usecase.ListMyReservationsUseCase
+import dev.maxaure.flightbooking.application.usecase.RevokeTokenUseCase
 import dev.maxaure.flightbooking.application.usecase.ReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.SearchAirportsUseCase
 import org.springframework.context.annotation.Bean
@@ -28,17 +42,41 @@ internal class UseCaseConfig {
         flights: FlightRepository,
         runs: IngestionRunRepository,
         records: RecordWriter,
-    ): IngestCatalogue = CatalogueIngestionUseCase(airports, flights, runs, records, Clock.systemUTC())
+        clock: Clock,
+    ): IngestCatalogue = CatalogueIngestionUseCase(airports, flights, runs, records, clock)
 
     @Bean
-    fun searchFlights(search: FlightSearch): SearchFlights =
-        FlightSearchUseCase(search, Clock.systemUTC())
+    fun searchFlights(search: FlightSearch, clock: Clock): SearchFlights =
+        FlightSearchUseCase(search, clock)
 
     @Bean
     fun searchAirports(directory: AirportDirectory): SearchAirports =
         SearchAirportsUseCase(directory)
 
     @Bean
-    fun reserveSeats(reservations: ReservationRepository): ReserveSeats =
-        ReservationUseCase(reservations, Clock.systemUTC())
+    fun reserveSeats(reservations: ReservationRepository, users: UserRepository, clock: Clock): ReserveSeats =
+        ReservationUseCase(reservations, users, clock)
+
+    @Bean
+    fun registerUser(users: UserRepository, hasher: PasswordHasher, clock: Clock): RegisterUser =
+        RegisterUserUseCase(users, hasher, clock)
+
+    @Bean
+    fun authenticateUser(
+        users: UserRepository,
+        hasher: PasswordHasher,
+        loginAttempts: LoginAttemptLimiter,
+    ): AuthenticateUser =
+        AuthenticateUserUseCase(users, hasher, loginAttempts)
+
+    @Bean
+    fun getCurrentUser(users: UserRepository): GetCurrentUser = GetCurrentUserUseCase(users)
+
+    @Bean
+    fun revokeToken(revokedTokens: RevokedTokenRepository): RevokeToken =
+        RevokeTokenUseCase(revokedTokens)
+
+    @Bean
+    fun listMyReservations(reservations: ReservationRepository): ListMyReservations =
+        ListMyReservationsUseCase(reservations)
 }

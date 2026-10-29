@@ -19,7 +19,7 @@ data class PassengerSeat(val seatNumber: SeatNumber, val passengerName: String)
 data class Reservation(
     val id: UUID,
     val flightId: UUID,
-    val userId: UUID?,
+    val userId: UUID,
     val status: ReservationStatus,
     val expiresAt: Instant?,
     val createdAt: Instant,
@@ -59,7 +59,7 @@ data class Reservation(
             flightId: UUID,
             seats: List<PassengerSeat>,
             now: Instant,
-            userId: UUID? = null,
+            userId: UUID,
             id: UUID = UUID.randomUUID(),
             holdDuration: Duration = HOLD_DURATION,
         ): Reservation {

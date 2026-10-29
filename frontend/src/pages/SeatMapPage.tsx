@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ApiError, cancelReservation, getSeatMap, holdSeats } from '../api/client'
 import type { Cabin, GroundedSeat, ReservationResponse, SeatMapResponse, SeatResponse } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
+import { isUnauthorized, useRequireAuth } from '../auth/useRequireAuth'
 import { HoldPanel } from '../components/HoldPanel'
 import { SeatGrid } from '../components/SeatGrid'
 
@@ -12,9 +14,16 @@ const formatter = new Intl.NumberFormat(undefined, {
 
 export function SeatMapPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { flightId } = useParams<{ flightId: string }>()
   const [params] = useSearchParams()
   const cabin = params.get('cabin') as Cabin | null
+
+  const { user } = useAuth()
+  useRequireAuth()
+
+  const sendToAuth = () =>
+    navigate(`/auth?redirect=${encodeURIComponent(`${location.pathname}${location.search}`)}`, { replace: true })
 
   const [seatMap, setSeatMap] = useState<SeatMapResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +38,7 @@ export function SeatMapPage() {
         setError('Missing flight.')
         return
       }
+      if (!user) return
       setSeatMap(null)
       setError(null)
       getSeatMap(flightId, signal)
@@ -38,14 +48,15 @@ export function SeatMapPage() {
           setError(cause instanceof ApiError ? cause.message : 'Could not load the seat map.')
         })
     },
-    [flightId],
+    [flightId, user],
   )
 
   useEffect(() => {
+    if (!user) return
     const controller = new AbortController()
     load(controller.signal)
     return () => controller.abort()
-  }, [load])
+  }, [load, user])
 
   if (error) {
     return (
@@ -56,7 +67,7 @@ export function SeatMapPage() {
     )
   }
 
-  if (!seatMap) return <p className="muted">Loading seat map…</p>
+  if (!seatMap) return <p className="muted">{user ? 'Loading seat map…' : 'Checking your session…'}</p>
 
   const visibleFares = cabin ? seatMap.fares.filter((fare) => fare.cabin === cabin) : seatMap.fares
   const visibleSeats = cabin ? seatMap.seats.filter((seat) => seat.cabin === cabin) : seatMap.seats
@@ -82,6 +93,10 @@ export function SeatMapPage() {
       setSelected(new Set())
       load()
     } catch (cause) {
+      if (isUnauthorized(cause)) {
+        sendToAuth()
+        return
+      }
       setHoldError(cause instanceof ApiError ? cause.message : 'Could not hold those seats.')
     } finally {
       setBusy(false)
@@ -97,6 +112,10 @@ export function SeatMapPage() {
       setReservation(null)
       load()
     } catch (cause) {
+      if (isUnauthorized(cause)) {
+        sendToAuth()
+        return
+      }
       setHoldError(cause instanceof ApiError ? cause.message : 'Could not cancel the hold.')
     } finally {
       setBusy(false)

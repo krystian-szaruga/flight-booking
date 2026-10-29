@@ -16,8 +16,8 @@ internal class ReservationEntity(
     @Column(name = "flight_id", nullable = false)
     var flightId: UUID,
 
-    @Column(name = "user_id")
-    var userId: UUID? = null,
+    @Column(name = "user_id", nullable = false)
+    var userId: UUID,
 
     @Column(name = "status", nullable = false)
     var status: String,

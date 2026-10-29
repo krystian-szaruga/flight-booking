@@ -19,7 +19,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(path, { signal, headers: { Accept: 'application/json' } })
+  const response = await fetch(path, {
+    signal,
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  })
   if (!response.ok) {
     throw new ApiError(response.status, await problemDetail(response))
   }
@@ -35,6 +39,7 @@ async function send<T>(
   const response = await fetch(path, {
     method,
     signal,
+    credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
@@ -99,4 +104,8 @@ export function cancelReservation(reservationId: string, signal?: AbortSignal): 
     undefined,
     signal,
   )
+}
+
+export function getMyReservations(signal?: AbortSignal): Promise<ReservationResponse[]> {
+  return request<ReservationResponse[]>('/api/v1/reservations', signal)
 }
