@@ -21,4 +21,7 @@ internal class UserEntity(
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
+
+    @Column(name = "email_verified_at")
+    var emailVerifiedAt: Instant? = null,
 )

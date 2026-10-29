@@ -41,7 +41,7 @@ class ReservationUseCaseTest {
     private val useCase = ReservationUseCase(repository, users, clock)
 
     private fun createUser(id: UserId) =
-        User.register(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
+        User.verified(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
 
     private fun seats(vararg numbers: String) =
         numbers.map { PassengerSeat(SeatNumber.of(it), "Passenger $it") }

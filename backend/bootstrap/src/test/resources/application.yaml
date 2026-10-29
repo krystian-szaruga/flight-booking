@@ -5,6 +5,9 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  mail:
+    host: localhost
+    port: 1025
 
 app:
   auth:
@@ -19,6 +22,14 @@ app:
     revoked-token:
       purge-enabled: false
       purge-cron: "0 0 * * * *"
+    verification:
+      code-ttl-minutes: 15
+      purge-enabled: false
+      purge-cron: "0 0 * * * *"
+  mail:
+    app-name: flight-booking
+    from: no-reply@flight-booking.local
+    enabled: false
 
 catalogue:
   providers:

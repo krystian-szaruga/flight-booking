@@ -12,10 +12,28 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    readonly stage: string | null = null,
   ) {
     super(message)
     this.name = 'ApiError'
   }
+}
+
+async function problemDetail(response: Response): Promise<{ message: string; stage: string | null }> {
+  try {
+    const body = (await response.json()) as { detail?: string; title?: string; stage?: string }
+    return {
+      message: body.detail ?? body.title ?? `Request failed with status ${response.status}`,
+      stage: body.stage ?? null,
+    }
+  } catch {
+    return { message: `Request failed with status ${response.status}`, stage: null }
+  }
+}
+
+export async function fail(response: Response): Promise<never> {
+  const problem = await problemDetail(response)
+  throw new ApiError(response.status, problem.message, problem.stage)
 }
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -24,9 +42,7 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
     credentials: 'include',
     headers: { Accept: 'application/json' },
   })
-  if (!response.ok) {
-    throw new ApiError(response.status, await problemDetail(response))
-  }
+  if (!response.ok) await fail(response)
   return (await response.json()) as T
 }
 
@@ -43,19 +59,8 @@ async function send<T>(
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (!response.ok) {
-    throw new ApiError(response.status, await problemDetail(response))
-  }
+  if (!response.ok) await fail(response)
   return (await response.json()) as T
-}
-
-async function problemDetail(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as { detail?: string; title?: string }
-    return body.detail ?? body.title ?? `Request failed with status ${response.status}`
-  } catch {
-    return `Request failed with status ${response.status}`
-  }
 }
 
 export function searchFlights(

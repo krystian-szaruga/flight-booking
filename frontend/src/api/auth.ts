@@ -1,16 +1,20 @@
+import { fail } from './client'
 import type { UserResponse } from './types'
 
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message)
-    this.name = 'ApiError'
-  }
+export { ApiError } from './client'
+
+export type RegistrationStage = 'CODE_SENT' | 'EMAIL_VERIFIED'
+
+export interface RegistrationResponse {
+  stage: RegistrationStage
+  retryAfterSeconds: number
 }
 
-async function send(method: 'GET' | 'POST', path: string, body?: unknown): Promise<UserResponse | null> {
+export interface ResendResponse {
+  retryAfterSeconds: number
+}
+
+async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method,
     credentials: 'include',
@@ -20,32 +24,31 @@ async function send(method: 'GET' | 'POST', path: string, body?: unknown): Promi
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (response.status === 204) return null
-  if (!response.ok) throw new ApiError(response.status, await detail(response))
-  return (await response.json()) as UserResponse
-}
-
-async function detail(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as { detail?: string; title?: string }
-    return body.detail ?? body.title ?? `Request failed with status ${response.status}`
-  } catch {
-    return `Request failed with status ${response.status}`
-  }
+  if (response.status === 204) return undefined as T
+  if (!response.ok) await fail(response)
+  return (await response.json()) as T
 }
 
 export function fetchCurrentUser(): Promise<UserResponse | null> {
-  return send('GET', '/api/auth/me')
+  return send<UserResponse | null>('GET', '/api/auth/me')
 }
 
 export function login(email: string, password: string): Promise<UserResponse | null> {
-  return send('POST', '/api/auth/login', { email, password })
+  return send<UserResponse | null>('POST', '/api/auth/login', { email, password })
 }
 
-export function register(email: string, password: string): Promise<UserResponse | null> {
-  return send('POST', '/api/auth/register', { email, password })
+export function register(email: string, password: string): Promise<RegistrationResponse> {
+  return send<RegistrationResponse>('POST', '/api/auth/register', { email, password })
 }
 
-export function logout(): Promise<UserResponse | null> {
-  return send('POST', '/api/auth/logout')
+export function verifyEmail(email: string, code: string): Promise<UserResponse | null> {
+  return send<UserResponse | null>('POST', '/api/auth/verify', { email, code })
+}
+
+export function resendVerification(email: string): Promise<ResendResponse | null> {
+  return send<ResendResponse | null>('POST', '/api/auth/verify/resend', { email })
+}
+
+export function logout(): Promise<void> {
+  return send<void>('POST', '/api/auth/logout')
 }

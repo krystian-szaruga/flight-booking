@@ -7,8 +7,11 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   if (loading) return <p className="muted">Checking your session…</p>
+  const target = `${location.pathname}${location.search}`
   if (!user) {
-    const target = `${location.pathname}${location.search}`
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(target)}`} replace />
+  }
+  if (!user.emailVerifiedAt) {
     return <Navigate to={`/auth?redirect=${encodeURIComponent(target)}`} replace />
   }
   return <>{children}</>

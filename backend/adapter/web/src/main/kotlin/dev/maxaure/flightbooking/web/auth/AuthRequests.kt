@@ -2,6 +2,7 @@ package dev.maxaure.flightbooking.web.auth
 
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 
 internal data class RegisterUserRequest(
@@ -15,8 +16,25 @@ internal data class RegisterUserRequest(
     val password: String,
 )
 
-internal data class LoginRequest(
+internal data class VerifyEmailRequest(
     @field:NotBlank(message = "Email is required")
+    @field:Email(message = "Email must be a valid address")
+    @field:Size(max = 254, message = "Email must be at most 254 characters")
+    val email: String,
+
+    @field:NotBlank(message = "Code is required")
+    @field:Pattern(regexp = "\\d{6}", message = "Code must be 6 digits")
+    val code: String,
+)
+
+internal data class ResendVerificationRequest(
+    @field:NotBlank(message = "Email is required")
+    @field:Email(message = "Email must be a valid address")
+    @field:Size(max = 254, message = "Email must be at most 254 characters")
+    val email: String,
+)
+
+internal data class LoginRequest(    @field:NotBlank(message = "Email is required")
     val email: String,
 
     @field:NotBlank(message = "Password is required")

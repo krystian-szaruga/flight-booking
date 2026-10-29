@@ -5,10 +5,15 @@ import dev.maxaure.flightbooking.application.port.`in`.AuthenticateUser
 import dev.maxaure.flightbooking.application.port.`in`.GetCurrentUser
 import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
 import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
+import dev.maxaure.flightbooking.application.port.`in`.ResendVerification
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import dev.maxaure.flightbooking.application.port.`in`.RevokeToken
 import dev.maxaure.flightbooking.application.port.`in`.SearchAirports
 import dev.maxaure.flightbooking.application.port.`in`.SearchFlights
+import dev.maxaure.flightbooking.application.port.`in`.VerifyEmail
+import dev.maxaure.flightbooking.application.port.out.MailSender
+import dev.maxaure.flightbooking.application.port.out.PendingRegistrationStore
+import dev.maxaure.flightbooking.application.port.out.VerificationCodeGenerator
 import dev.maxaure.flightbooking.application.port.out.AirportDirectory
 import dev.maxaure.flightbooking.application.port.out.AirportRepository
 import dev.maxaure.flightbooking.application.port.out.FlightRepository
@@ -23,15 +28,20 @@ import dev.maxaure.flightbooking.application.port.out.PasswordHasher
 import dev.maxaure.flightbooking.application.usecase.CatalogueIngestionUseCase
 import dev.maxaure.flightbooking.application.usecase.FlightSearchUseCase
 import dev.maxaure.flightbooking.application.usecase.RegisterUserUseCase
+import dev.maxaure.flightbooking.application.usecase.ResendVerificationUseCase
+import dev.maxaure.flightbooking.application.usecase.VerifyEmailUseCase
+import dev.maxaure.flightbooking.domain.model.user.verification.ResendBackoff
 import dev.maxaure.flightbooking.application.usecase.AuthenticateUserUseCase
 import dev.maxaure.flightbooking.application.usecase.GetCurrentUserUseCase
 import dev.maxaure.flightbooking.application.usecase.ListMyReservationsUseCase
 import dev.maxaure.flightbooking.application.usecase.RevokeTokenUseCase
 import dev.maxaure.flightbooking.application.usecase.ReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.SearchAirportsUseCase
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Clock
+import java.time.Duration
 
 @Configuration
 internal class UseCaseConfig {
@@ -58,8 +68,46 @@ internal class UseCaseConfig {
         ReservationUseCase(reservations, users, clock)
 
     @Bean
-    fun registerUser(users: UserRepository, hasher: PasswordHasher, clock: Clock): RegisterUser =
-        RegisterUserUseCase(users, hasher, clock)
+    fun registerUser(
+        users: UserRepository,
+        pending: PendingRegistrationStore,
+        hasher: PasswordHasher,
+        clock: Clock,
+        codes: VerificationCodeGenerator,
+        mail: MailSender,
+        @Value("\${app.auth.verification.code-ttl-minutes}") ttlMinutes: Long,
+        @Value("\${app.mail.app-name}") appName: String,
+    ): RegisterUser =
+        RegisterUserUseCase(
+            users, pending, hasher, clock, codes, mail, Duration.ofMinutes(ttlMinutes), appName,
+            ResendBackoff(Duration.ofMinutes(ttlMinutes)),
+        )
+
+    @Bean
+    fun verifyEmail(
+        users: UserRepository,
+        pending: PendingRegistrationStore,
+        hasher: PasswordHasher,
+        loginAttempts: LoginAttemptLimiter,
+        clock: Clock,
+    ): VerifyEmail = VerifyEmailUseCase(users, pending, hasher, loginAttempts, clock)
+
+    @Bean
+    fun resendVerification(
+        users: UserRepository,
+        pending: PendingRegistrationStore,
+        hasher: PasswordHasher,
+        loginAttempts: LoginAttemptLimiter,
+        codes: VerificationCodeGenerator,
+        mail: MailSender,
+        clock: Clock,
+        @Value("\${app.auth.verification.code-ttl-minutes}") ttlMinutes: Long,
+        @Value("\${app.mail.app-name}") appName: String,
+    ): ResendVerification =
+        ResendVerificationUseCase(
+            users, pending, hasher, loginAttempts, codes, mail, clock, Duration.ofMinutes(ttlMinutes), appName,
+            ResendBackoff(Duration.ofMinutes(ttlMinutes)),
+        )
 
     @Bean
     fun authenticateUser(

@@ -9,6 +9,7 @@ import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
+import dev.maxaure.flightbooking.domain.model.user.EmailNotVerified
 import dev.maxaure.flightbooking.domain.model.user.UserId
 import java.time.Clock
 import java.util.UUID
@@ -20,7 +21,8 @@ class ReservationUseCase(
 ) : ReserveSeats {
 
     override fun hold(userId: UserId, flightId: UUID, seats: List<PassengerSeat>): Reservation {
-        if (users.findById(userId) == null) throw NotFoundException("User $userId does not exist")
+        val user = users.findById(userId) ?: throw NotFoundException("User $userId does not exist")
+        if (!user.isVerified) throw EmailNotVerified()
         val candidate = Reservation.hold(flightId, seats, clock.instant(), userId = userId.value)
         return when (val outcome = reservations.holdSeats(candidate)) {
             is HoldOutcome.Held -> outcome.reservation

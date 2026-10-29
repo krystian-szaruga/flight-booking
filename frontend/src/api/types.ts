@@ -75,6 +75,7 @@ export interface UserResponse {
   id: string
   email: string
   createdAt: string
+  emailVerifiedAt: string | null
 }
 
 export interface DealResponse {

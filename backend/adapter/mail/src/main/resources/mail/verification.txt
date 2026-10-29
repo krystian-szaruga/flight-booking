@@ -1,0 +1,5 @@
+Your {appName} verification code is {code}.
+
+Enter it to finish verifying your email address. The code expires in {ttlMinutes} minutes.
+
+If you did not create a {appName} account, you can ignore this message.
