@@ -77,7 +77,8 @@ class CatalogueIngestionUseCase(
         val flight = FlightAssembler.fromFeed(record, origin, destination, existing, source, syncedAt)
 
         val saved = flights.save(flight)
-        if (existing == null || existing.seatRows != flight.seatRows) {
+        val taken = flights.countSoldSeats(saved.id) > 0
+        if (!taken && (existing == null || existing.seatRows != flight.seatRows)) {
             flights.replaceSeatInventory(saved.id, saved.seatInventory())
         }
         return saved

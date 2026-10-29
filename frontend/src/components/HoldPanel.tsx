@@ -1,93 +1,105 @@
 import { useState } from 'react'
-import type { GroundedSeat, ReservationResponse, SeatResponse } from '../api/types'
-import { formatRemaining, useRemainingSeconds } from './useRemainingSeconds'
+import type { HoldSeat, PassengerType, ReservationResponse, SeatResponse } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
+import { SeatEditor } from './SeatEditor'
+import { SeatHold } from './SeatHold'
+import type { PassengerDraft } from './passengerDraft'
 
 interface HoldPanelProps {
   selected: SeatResponse[]
-  reservation: ReservationResponse | null
+  reservations: ReservationResponse[]
   busy: boolean
   error: string | null
-  onHold: (seats: GroundedSeat[]) => void
-  onCancel: () => void
+  onHold: (seats: HoldSeat[]) => void
+  onCancel: (reservationId: string) => void
+  onCancelSeats: (reservationId: string, seats: string[]) => void
   onReleaseSeat: (seat: string) => void
 }
 
 export function HoldPanel({
   selected,
-  reservation,
+  reservations,
   busy,
   error,
   onHold,
   onCancel,
+  onCancelSeats,
   onReleaseSeat,
 }: HoldPanelProps) {
-  const [names, setNames] = useState<Record<string, string>>({})
-  const seconds = useRemainingSeconds(reservation?.expiresAt ?? null)
+  const { user } = useAuth()
+  const [drafts, setDrafts] = useState<Record<string, PassengerDraft>>({})
 
-  if (reservation) {
-    const expired = seconds === 0
-    return (
-      <section className="hold-panel" aria-live="polite">
-        <h2>Seats on hold</h2>
-        <p className="muted">
-          {expired
-            ? 'This hold has expired — the seats will be released.'
-            : `Pay within ${formatRemaining(seconds ?? 0)} or the seats are released.`}
-        </p>
-        <ul className="hold-seats">
-          {reservation.seats.map((seat) => (
-            <li key={seat.seat}>
-              <strong>{seat.seat}</strong> {seat.passengerName}
-            </li>
-          ))}
-        </ul>
-        <button type="button" className="link-button" onClick={onCancel} disabled={busy || expired}>
-          {busy ? 'Cancelling…' : 'Cancel hold'}
-        </button>
-        {error && <p className="error">{error}</p>}
-      </section>
-    )
-  }
+  const activeHolds = reservations.filter(
+    (item) => item.status === 'PENDING' || item.status === 'CONFIRMED',
+  )
 
-  if (selected.length === 0) {
-    return <p className="muted">Select seats on the map to hold them.</p>
-  }
+  const choose = (seat: string, passengerType: PassengerType) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType,
+        firstName: current[seat]?.firstName ?? '',
+        lastName: current[seat]?.lastName ?? '',
+      },
+    }))
 
-  const ready = selected.every((seat) => (names[seat.seat] ?? '').trim().length > 0)
+  const updateName = (seat: string, field: 'firstName' | 'lastName', value: string) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType: current[seat]?.passengerType ?? 'OTHER',
+        firstName: field === 'firstName' ? value : (current[seat]?.firstName ?? ''),
+        lastName: field === 'lastName' ? value : (current[seat]?.lastName ?? ''),
+      },
+    }))
 
   return (
-    <section className="hold-panel">
-      <h2>{selected.length === 1 ? 'One seat selected' : `${selected.length} seats selected`}</h2>
-      <ul className="hold-seats">
-        {selected.map((seat) => (
-          <li key={seat.seat}>
-            <strong>{seat.seat}</strong>
-            <input
-              type="text"
-              aria-label={`Passenger name for seat ${seat.seat}`}
-              placeholder="Passenger name"
-              value={names[seat.seat] ?? ''}
-              onChange={(event) => setNames((current) => ({ ...current, [seat.seat]: event.target.value }))}
-            />
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => onReleaseSeat(seat.seat)}
-              aria-label={`Remove seat ${seat.seat}`}
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        disabled={!ready || busy}
-        onClick={() => onHold(selected.map((seat) => ({ seat: seat.seat, passengerName: (names[seat.seat] ?? '').trim() })))}
-      >
-        {busy ? 'Holding…' : 'Hold seats'}
-      </button>
-      {error && <p className="error">{error}</p>}
-    </section>
+    <>
+      {selected.length > 0 && (
+        <SeatEditor
+          selected={selected}
+          drafts={drafts}
+          profileFirst={user?.firstName ?? ''}
+          profileLast={user?.lastName ?? ''}
+          hasProfileName={Boolean(user?.firstName && user?.lastName)}
+          busy={busy}
+          onChoose={choose}
+          onName={updateName}
+          onRemove={onReleaseSeat}
+          onHold={onHold}
+        />
+      )}
+
+      {activeHolds.length > 0 && (
+        <section className="hold-panel" aria-live="polite">
+          <h2>{activeHolds.length === 1 ? 'Seat on hold' : 'Seats on hold'}</h2>
+          <ul className="hold-seats">
+            {activeHolds.map((hold) => (
+              <SeatHold
+                key={hold.reservationId}
+                hold={hold}
+                busy={busy}
+                onCancel={onCancel}
+                onCancelSeats={onCancelSeats}
+              />
+            ))}
+          </ul>
+          {error && <p className="error">{error}</p>}
+        </section>
+      )}
+
+      {selected.length === 0 ? (
+        <>
+          <p className="muted">
+            Select {activeHolds.length > 0 ? 'more ' : ''}seats on the map to hold them.
+          </p>
+          {error && <p className="error">{error}</p>}
+        </>
+      ) : (
+        <p className="muted">
+          Selected: <strong>{selected.map((seat) => seat.seat).join(', ')}</strong>
+        </p>
+      )}
+    </>
   )
 }

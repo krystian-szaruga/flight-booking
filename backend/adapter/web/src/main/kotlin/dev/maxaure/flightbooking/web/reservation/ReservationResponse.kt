@@ -16,9 +16,13 @@ internal data class ReservationResponse(
             flightId = reservation.flightId.toString(),
             status = reservation.status.name,
             expiresAt = reservation.expiresAt,
-            seats = reservation.seats.map { HeldSeatResponse(it.seatNumber.value, it.passengerName) },
+            seats = reservation.seats.map { HeldSeatResponse(it.seatNumber.value, it.firstName, it.lastName) },
         )
     }
 }
 
-internal data class HeldSeatResponse(val seat: String, val passengerName: String)
+internal data class HeldSeatResponse(
+    val seat: String,
+    val firstName: String,
+    val lastName: String,
+)

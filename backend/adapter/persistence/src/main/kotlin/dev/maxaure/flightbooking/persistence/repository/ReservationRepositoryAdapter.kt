@@ -76,6 +76,24 @@ internal class ReservationRepositoryAdapter(
         released
     }
 
+    override fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation? =
+        transactions.execute {
+            val locked = reservations.lockById(reservationId) ?: return@execute null
+            val current = load(reservationId) ?: return@execute null
+            if (current.status != ReservationStatus.PENDING && current.status != ReservationStatus.CONFIRMED) {
+                return@execute current
+            }
+            val dropped = current.seats.filter { it.seatNumber.value in seatNumbers }.map { it.seatNumber.value }
+            if (dropped.isEmpty()) return@execute current
+
+            releaseHeldSeats(reservationId, dropped)
+            val remaining = current.seats.filter { it.seatNumber.value !in seatNumbers }
+            val updated = current.copy(seats = remaining)
+            locked.status = updated.status.name
+            locked.expiresAt = updated.expiresAt
+            updated
+        }
+
     override fun findExpired(at: Instant, limit: Int): List<Reservation> = transactions.execute {
         reservations.findPendingExpired(at, PageRequest.of(0, limit))
             .mapNotNull { entity -> load(entity.id) }
@@ -105,11 +123,17 @@ internal class ReservationRepositoryAdapter(
         return reservations.lockSeatsByIds(linkIds).associate { it.id to it.seatNumber }
     }
 
-    private fun releaseHeldSeats(reservationId: UUID) {
-        val seatIds = reservationSeats.findByReservationId(reservationId).map { it.flightSeatId }
-        if (seatIds.isEmpty()) return
-        reservations.lockSeatsByIds(seatIds).forEach { it.release() }
-        reservationSeats.deleteByReservationId(reservationId)
+    private fun releaseHeldSeats(reservationId: UUID, onlySeatNumbers: Collection<String>? = null) {
+        val links = reservationSeats.findByReservationId(reservationId)
+        val numbers = heldSeatNumbers(reservationId)
+        val selected = if (onlySeatNumbers == null) {
+            links
+        } else {
+            links.filter { numbers[it.flightSeatId] in onlySeatNumbers }
+        }
+        if (selected.isEmpty()) return
+        reservations.lockSeatsByIds(selected.map { it.flightSeatId }).forEach { it.release() }
+        reservationSeats.deleteAll(selected)
     }
 
     private fun isHoldOver(seat: ReservationEntity): Boolean =

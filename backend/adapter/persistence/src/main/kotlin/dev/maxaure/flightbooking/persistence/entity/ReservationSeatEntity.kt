@@ -18,6 +18,9 @@ internal class ReservationSeatEntity(
     @Column(name = "flight_seat_id", nullable = false)
     var flightSeatId: UUID,
 
-    @Column(name = "passenger_name", nullable = false)
-    var passengerName: String,
+    @Column(name = "first_name", nullable = false)
+    var firstName: String,
+
+    @Column(name = "last_name", nullable = false)
+    var lastName: String,
 )

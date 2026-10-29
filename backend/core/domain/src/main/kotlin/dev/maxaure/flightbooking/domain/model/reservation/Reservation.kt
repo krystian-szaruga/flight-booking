@@ -7,14 +7,32 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+enum class PassengerType {
+    SELF,
+    OTHER,
+}
+
+data class PassengerSeat(
+    val seatNumber: SeatNumber,
+    val firstName: String,
+    val lastName: String,
+) {
+    val fullName: String
+        get() = "$firstName $lastName"
+
+    init {
+        if (firstName.isBlank() || lastName.isBlank()) {
+            throw InvalidDomainValueException("Passenger first and last name must both be provided")
+        }
+    }
+}
+
 enum class ReservationStatus {
     PENDING,
     CONFIRMED,
     EXPIRED,
     CANCELLED,
 }
-
-data class PassengerSeat(val seatNumber: SeatNumber, val passengerName: String)
 
 data class Reservation(
     val id: UUID,
@@ -26,14 +44,14 @@ data class Reservation(
     val seats: List<PassengerSeat>,
 ) {
     init {
-        require(seats.isNotEmpty()) { "A reservation must hold at least one seat" }
+        val holdsSeats = status == ReservationStatus.PENDING || status == ReservationStatus.CONFIRMED
+        require(!holdsSeats || seats.isNotEmpty()) { "A reservation that holds seats must have at least one seat" }
         require(seats.map { it.seatNumber }.toSet().size == seats.size) {
             "A seat may only be held once per reservation"
         }
         seats.forEach {
-            if (it.passengerName.isBlank()) throw InvalidDomainValueException("Passenger name must not be blank")
+            if (it.fullName.isBlank()) throw InvalidDomainValueException("Passenger name must not be blank")
         }
-        val holdsSeats = status == ReservationStatus.PENDING || status == ReservationStatus.CONFIRMED
         require(holdsSeats == (expiresAt != null)) { "Only a pending reservation carries a hold expiry" }
     }
 

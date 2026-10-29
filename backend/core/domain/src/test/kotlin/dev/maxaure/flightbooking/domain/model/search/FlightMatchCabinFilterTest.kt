@@ -17,7 +17,8 @@ class FlightMatchCabinFilterTest {
     private val query = SearchFlightsQuery(
         origin = IataCode.of("WAW"),
         destination = IataCode.of("LIS"),
-        departureDate = LocalDate.parse("2026-11-01"),
+        departureFrom = LocalDate.parse("2026-11-01"),
+        departureTo = LocalDate.parse("2026-11-01"),
         zone = ZoneId.of("Europe/Warsaw"),
     )
 

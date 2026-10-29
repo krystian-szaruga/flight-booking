@@ -8,3 +8,5 @@ class EmailAlreadyRegistered(val email: Email) :
 class InvalidCredentials : DomainException("Invalid credentials")
 
 class EmailNotVerified : DomainException("Email address is not verified")
+
+class ProfileIncomplete : DomainException("Add your first and last name before booking for yourself")

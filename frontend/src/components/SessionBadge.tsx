@@ -1,8 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useConfirm } from './confirm/ConfirmProvider'
 
 export function SessionBadge() {
   const { user, loading, signOut } = useAuth()
+  const confirm = useConfirm()
   const navigate = useNavigate()
 
   if (loading) return null
@@ -18,12 +20,19 @@ export function SessionBadge() {
       <Link to="/reservations" className="link-button">
         My reservations
       </Link>
-      <span className="muted">{user.email}</span>
+      <Link to="/profile" className="link-button">
+        {user.firstName ? `${user.firstName} ${user.lastName}` : 'Your details'}
+      </Link>
       <button
         type="button"
         className="link-button"
-        onClick={() => {
-          void signOut().then(() => navigate('/'))
+        onClick={async () => {
+          const answer = await confirm({
+            title: 'Sign out?',
+            body: 'Your holds stay in place, but you will need to sign in again to see them.',
+            confirmLabel: 'Sign out',
+          })
+          if (answer) void signOut().then(() => navigate('/'))
         }}
       >
         Sign out

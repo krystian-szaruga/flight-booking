@@ -40,3 +40,13 @@ internal data class LoginRequest(    @field:NotBlank(message = "Email is require
     @field:NotBlank(message = "Password is required")
     val password: String,
 )
+
+internal data class UpdateProfileRequest(
+    @field:NotBlank(message = "First name is required")
+    @field:Size(max = 100, message = "First name must be at most 100 characters")
+    val firstName: String,
+
+    @field:NotBlank(message = "Last name is required")
+    @field:Size(max = 100, message = "Last name must be at most 100 characters")
+    val lastName: String,
+)

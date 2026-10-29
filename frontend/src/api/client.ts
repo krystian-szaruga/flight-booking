@@ -2,7 +2,7 @@ import type {
   AirportSummary,
   DealResponse,
   FlightSummaryResponse,
-  GroundedSeat,
+  HoldSeat,
   ReservationResponse,
   SearchFlightsParams,
   SeatMapResponse,
@@ -13,27 +13,31 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly stage: string | null = null,
+    readonly code: string | null = null,
   ) {
     super(message)
     this.name = 'ApiError'
   }
 }
 
-async function problemDetail(response: Response): Promise<{ message: string; stage: string | null }> {
+async function problemDetail(
+  response: Response,
+): Promise<{ message: string; stage: string | null; code: string | null }> {
   try {
-    const body = (await response.json()) as { detail?: string; title?: string; stage?: string }
+    const body = (await response.json()) as { detail?: string; title?: string; stage?: string; code?: string }
     return {
       message: body.detail ?? body.title ?? `Request failed with status ${response.status}`,
       stage: body.stage ?? null,
+      code: body.code ?? null,
     }
   } catch {
-    return { message: `Request failed with status ${response.status}`, stage: null }
+    return { message: `Request failed with status ${response.status}`, stage: null, code: null }
   }
 }
 
 export async function fail(response: Response): Promise<never> {
   const problem = await problemDetail(response)
-  throw new ApiError(response.status, problem.message, problem.stage)
+  throw new ApiError(response.status, problem.message, problem.stage, problem.code)
 }
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -70,8 +74,9 @@ export function searchFlights(
   const query = new URLSearchParams({
     origin: params.origin,
     destination: params.destination,
-    date: params.date,
+    from: params.from,
   })
+  if (params.to && params.to !== params.from) query.set('to', params.to)
   if (params.cabin) query.set('cabin', params.cabin)
   if (params.zone) query.set('zone', params.zone)
   return request<FlightSummaryResponse[]>(`/api/v1/flights?${query.toString()}`, signal)
@@ -91,7 +96,7 @@ export function searchAirports(query: string, signal?: AbortSignal): Promise<Air
 
 export function holdSeats(
   flightId: string,
-  seats: GroundedSeat[],
+  seats: HoldSeat[],
   signal?: AbortSignal,
 ): Promise<ReservationResponse> {
   return send<ReservationResponse>(
@@ -107,6 +112,19 @@ export function cancelReservation(reservationId: string, signal?: AbortSignal): 
     'DELETE',
     `/api/v1/reservations/${encodeURIComponent(reservationId)}`,
     undefined,
+    signal,
+  )
+}
+
+export function cancelReservationSeats(
+  reservationId: string,
+  seats: string[],
+  signal?: AbortSignal,
+): Promise<ReservationResponse> {
+  return send<ReservationResponse>(
+    'DELETE',
+    `/api/v1/reservations/${encodeURIComponent(reservationId)}/seats`,
+    { seats },
     signal,
   )
 }

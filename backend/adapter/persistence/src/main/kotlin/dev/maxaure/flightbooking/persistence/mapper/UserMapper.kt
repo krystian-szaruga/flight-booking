@@ -14,6 +14,8 @@ internal object UserMapper {
         passwordHash = PasswordHash.fromTrusted(entity.passwordHash),
         createdAt = entity.createdAt,
         emailVerifiedAt = entity.emailVerifiedAt,
+        firstName = entity.firstName,
+        lastName = entity.lastName,
     )
 
     fun toEntity(user: User): UserEntity = UserEntity(
@@ -22,5 +24,7 @@ internal object UserMapper {
         passwordHash = user.passwordHash.value,
         createdAt = user.createdAt,
         emailVerifiedAt = user.emailVerifiedAt,
+        firstName = user.firstName,
+        lastName = user.lastName,
     )
 }

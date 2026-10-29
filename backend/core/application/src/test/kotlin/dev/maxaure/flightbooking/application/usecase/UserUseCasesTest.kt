@@ -7,6 +7,10 @@ import dev.maxaure.flightbooking.application.port.out.PasswordHasher
 import dev.maxaure.flightbooking.application.port.out.PendingRegistrationStore
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.application.port.out.VerificationCodeGenerator
+import dev.maxaure.flightbooking.application.usecase.user.AuthenticateUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.GetCurrentUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.RegisterUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.VerifyEmailUseCase
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.user.AuthenticateUserCommand
 import dev.maxaure.flightbooking.domain.model.user.Email
@@ -88,7 +92,7 @@ class UserUseCasesTest {
         }
     }
 
-    private class InMemoryPending(private val clock: Clock) : PendingRegistrationStore {
+    private class InMemoryPending() : PendingRegistrationStore {
         val rows = mutableMapOf<String, PendingRegistration>()
 
         override fun find(email: Email): PendingRegistration? = rows[email.value]
@@ -132,7 +136,7 @@ class UserUseCasesTest {
     private val clock = MutableClock(now)
     private val users = InMemoryUsers()
     private val attempts = RecordingLoginAttempts()
-    private val pending = InMemoryPending(clock)
+    private val pending = InMemoryPending()
     private val mails = RecordingMailSender()
     private val register = RegisterUserUseCase(
         users, pending, ReversingHasher(), clock, fixedCode, mails, ttl, "flight-booking", ResendBackoff(ttl),

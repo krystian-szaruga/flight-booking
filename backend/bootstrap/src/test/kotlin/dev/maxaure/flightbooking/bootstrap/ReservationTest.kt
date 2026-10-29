@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.queryForObject
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.RestClient
@@ -25,7 +24,7 @@ import org.testcontainers.utility.DockerImageName
 @ApplyExtension(SpringExtension::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(MailOutboxConfig::class)
-class ReservationItSmokeTest(
+class ReservationTest(
     @Autowired private val jdbc: JdbcTemplate,
     @LocalServerPort private val port: Int,
 ) : StringSpec({
@@ -134,7 +133,7 @@ class ReservationItSmokeTest(
                 .uri("/api/v1/reservations/flights/$flightId")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.COOKIE, sessionCookie(client, email))
-                .body("""{"seats":[{"seat":"$seat","passengerName":"Ada Lovelace"}]}""")
+                .body("""{"seats":[{"seat":"$seat","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace"}]}""")
                 .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
 
             check(status in 200..299) { "hold $seat for $email failed: HTTP $status $body" }

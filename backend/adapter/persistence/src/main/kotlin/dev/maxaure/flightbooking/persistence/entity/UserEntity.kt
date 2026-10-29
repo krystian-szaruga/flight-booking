@@ -24,4 +24,10 @@ internal class UserEntity(
 
     @Column(name = "email_verified_at")
     var emailVerifiedAt: Instant? = null,
+
+    @Column(name = "first_name")
+    var firstName: String? = null,
+
+    @Column(name = "last_name")
+    var lastName: String? = null,
 )

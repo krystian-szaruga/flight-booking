@@ -1,0 +1,39 @@
+input,
+select,
+button {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  accent-color: var(--accent);
+}
+
+button[type='submit'],
+.button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-button:disabled {
+  color: var(--muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+  text-decoration: none;
+}

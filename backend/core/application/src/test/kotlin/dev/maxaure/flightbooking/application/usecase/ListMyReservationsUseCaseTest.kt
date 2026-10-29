@@ -50,6 +50,19 @@ class ListMyReservationsUseCaseTest {
     }
 
     @Test
+    fun `when a reservation was cancelled and released its seats then the rest of the listing still loads`() {
+        val cancelled = repository.add(alice, flightId, "12A", now).let { repository.cancel(it.id) }.let {
+            repository.forgetSeats(it.id)
+        }
+        val pending = repository.add(alice, flightId, "12B", now)
+
+        val listed = useCase.list(alice)
+
+        assertEquals(listOf(pending.id), listed.map { it.id })
+        assertEquals(ReservationStatus.CANCELLED, repository.findById(cancelled.id)?.status)
+    }
+
+    @Test
     fun `when a user has no reservations then the listing is empty`() {
         repository.add(bob, flightId, "12A", now)
 
@@ -67,7 +80,7 @@ class ListMyReservationsUseCaseTest {
                 status = ReservationStatus.PENDING,
                 expiresAt = createdAt.plus(Duration.ofMinutes(15)),
                 createdAt = createdAt,
-                seats = listOf(PassengerSeat(SeatNumber.of(seat), "Ada Lovelace")),
+                seats = listOf(PassengerSeat(SeatNumber.of(seat), "Ada", "Lovelace")),
             )
             stored[reservation.id] = reservation
             return reservation
@@ -79,6 +92,12 @@ class ListMyReservationsUseCaseTest {
             return cancelled
         }
 
+        fun forgetSeats(id: UUID): Reservation {
+            val released = stored.getValue(id).copy(seats = emptyList())
+            stored[id] = released
+            return released
+        }
+
         override fun findById(id: UUID): Reservation? = stored[id]
 
         override fun save(reservation: Reservation): Reservation = reservation.also { stored[it.id] = it }
@@ -86,6 +105,9 @@ class ListMyReservationsUseCaseTest {
         override fun holdSeats(reservation: Reservation): HoldOutcome = error("Not used by the listing")
 
         override fun releaseSeats(reservationId: UUID): Reservation? = error("Not used by the listing")
+
+        override fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation? =
+            error("Not used by these tests")
 
         override fun findExpired(at: Instant, limit: Int): List<Reservation> =
             stored.values.filter { it.status == ReservationStatus.PENDING && !it.expiresAt!!.isAfter(at) }.take(limit)

@@ -16,7 +16,7 @@ function timeOfDay(iso: string): string {
 
 export function DealCard({ deal }: { deal: DealResponse }) {
   return (
-    <Link to={`/flights/${deal.flightId}/seats?cabin=${deal.cabin}`} className="deal-card">
+    <Link to={`/flights/${deal.flightId}/seats`} className="deal-card">
       <div className="deal-route">
         <span className="deal-code">{deal.origin}</span>
         <span className="deal-arrow" aria-hidden="true">

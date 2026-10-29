@@ -14,7 +14,7 @@ export interface ResendResponse {
   retryAfterSeconds: number
 }
 
-async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+async function send<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method,
     credentials: 'include',
@@ -51,4 +51,8 @@ export function resendVerification(email: string): Promise<ResendResponse | null
 
 export function logout(): Promise<void> {
   return send<void>('POST', '/api/auth/logout')
+}
+
+export function updateProfile(firstName: string, lastName: string): Promise<UserResponse> {
+  return send<UserResponse>('PUT', '/api/auth/me', { firstName, lastName })
 }

@@ -73,7 +73,7 @@ class FlightSearchUseCaseTest {
         val earlyB = match("W61400", Instant.parse("2026-11-01T06:00:00Z"))
         val earlyA = match("LO200", Instant.parse("2026-11-01T06:00:00Z"))
 
-        val results = useCase(late, earlyB, earlyA).search("WAW", "LIS", date, warsaw)
+        val results = useCase(late, earlyB, earlyA).search("WAW", "LIS", date, date, warsaw)
 
         assertEquals(listOf("LO200", "W61400", "LO100"), results.map { it.flightNumber })
     }
@@ -82,7 +82,7 @@ class FlightSearchUseCaseTest {
     fun `when the local day is queried then the window covers midnight to midnight in that zone`() {
         val search = FakeFlightSearch(emptyList())
 
-        FlightSearchUseCase(search, clock).search("WAW", "LIS", date, warsaw)
+        FlightSearchUseCase(search, clock).search("WAW", "LIS", date, date, warsaw)
 
         val query = search.queries.single()
         assertEquals(Instant.parse("2026-10-31T23:00:00Z"), query.from)
@@ -94,7 +94,32 @@ class FlightSearchUseCaseTest {
         val yesterday = LocalDate.parse("2026-10-26")
 
         assertFailsWith<InvalidDomainValueException> {
-            useCase().search("WAW", "LIS", yesterday, warsaw)
+            useCase().search("WAW", "LIS", yesterday, yesterday, warsaw)
+        }
+    }
+
+    @Test
+    fun `when a window is searched then the query spans the first day to the end of the last day`() {
+        val search = FakeFlightSearch(emptyList())
+
+        FlightSearchUseCase(search, clock).search("WAW", "LIS", date, date.plusDays(14), warsaw)
+
+        val query = search.queries.single()
+        assertEquals(Instant.parse("2026-10-31T23:00:00Z"), query.from)
+        assertEquals(Instant.parse("2026-11-15T23:00:00Z"), query.until)
+    }
+
+    @Test
+    fun `when the window ends before it starts then the search is rejected`() {
+        assertFailsWith<InvalidDomainValueException> {
+            useCase().search("WAW", "LIS", date, date.minusDays(1), warsaw)
+        }
+    }
+
+    @Test
+    fun `when the window is longer than the allowed range then the search is rejected`() {
+        assertFailsWith<InvalidDomainValueException> {
+            useCase().search("WAW", "LIS", date, date.plusDays(61), warsaw)
         }
     }
 
@@ -103,7 +128,7 @@ class FlightSearchUseCaseTest {
         val today = LocalDate.parse("2026-10-27")
         val search = FakeFlightSearch(listOf(match("LO100", Instant.parse("2026-10-27T18:00:00Z"))))
 
-        val results = FlightSearchUseCase(search, clock).search("WAW", "LIS", today, warsaw)
+        val results = FlightSearchUseCase(search, clock).search("WAW", "LIS", today, today, warsaw)
 
         assertEquals(1, results.size)
     }
@@ -111,7 +136,7 @@ class FlightSearchUseCaseTest {
     @Test
     fun `when origin and destination are the same then the search is rejected`() {
         assertFailsWith<InvalidDomainValueException> {
-            useCase().search("WAW", "WAW", date, warsaw)
+            useCase().search("WAW", "WAW", date, date, warsaw)
         }
     }
 
@@ -127,7 +152,7 @@ class FlightSearchUseCaseTest {
         )
         val economyOnly = match("W61400", Instant.parse("2026-11-01T09:00:00Z"))
 
-        val results = useCase(both, economyOnly).search("WAW", "LIS", date, warsaw, "business")
+        val results = useCase(both, economyOnly).search("WAW", "LIS", date, date, warsaw, "business")
 
         assertEquals(listOf("LO100"), results.map { it.flightNumber })
         assertEquals(listOf(Cabin.BUSINESS), results.single().fares.map { it.cabin })
@@ -144,7 +169,7 @@ class FlightSearchUseCaseTest {
             ),
         )
 
-        val result = useCase(both).search("WAW", "LIS", date, warsaw).single()
+        val result = useCase(both).search("WAW", "LIS", date, date, warsaw).single()
 
         assertEquals(2, result.fares.size)
         assertEquals(12, result.availableSeats)

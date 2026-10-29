@@ -46,7 +46,8 @@ export interface SeatMapResponse {
 export interface SearchFlightsParams {
   origin: string
   destination: string
-  date: string
+  from: string
+  to?: string
   cabin?: Cabin
   zone?: string
 }
@@ -58,9 +59,19 @@ export interface AirportSummary {
   countryCode: string
 }
 
+export type PassengerType = 'SELF' | 'OTHER'
+
+export interface HoldSeat {
+  seat: string
+  passengerType: PassengerType
+  firstName?: string
+  lastName?: string
+}
+
 export interface GroundedSeat {
   seat: string
-  passengerName: string
+  firstName: string
+  lastName: string
 }
 
 export interface ReservationResponse {
@@ -76,6 +87,8 @@ export interface UserResponse {
   email: string
   createdAt: string
   emailVerifiedAt: string | null
+  firstName: string | null
+  lastName: string | null
 }
 
 export interface DealResponse {

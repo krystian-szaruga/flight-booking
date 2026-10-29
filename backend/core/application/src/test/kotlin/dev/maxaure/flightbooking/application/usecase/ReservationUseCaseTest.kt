@@ -1,12 +1,13 @@
 package dev.maxaure.flightbooking.application.usecase
 
+import dev.maxaure.flightbooking.application.port.`in`.HoldSeatRequest
 import dev.maxaure.flightbooking.application.port.out.HoldOutcome
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
-import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
+import dev.maxaure.flightbooking.domain.model.reservation.PassengerType
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
 import dev.maxaure.flightbooking.domain.model.user.Email
@@ -44,7 +45,7 @@ class ReservationUseCaseTest {
         User.verified(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
 
     private fun seats(vararg numbers: String) =
-        numbers.map { PassengerSeat(SeatNumber.of(it), "Passenger $it") }
+        numbers.map { HoldSeatRequest(SeatNumber.of(it), PassengerType.OTHER, "Passenger", it) }
 
     @Test
     fun `when a seat is already held then a second hold of the same seat is rejected and the first survives`() {
@@ -64,6 +65,37 @@ class ReservationUseCaseTest {
         assertFailsWith<ConflictException> { useCase.hold(userId, flightId, seats("12C", "12A")) }
 
         assertEquals(listOf("12A"), repository.heldSeats(flightId))
+    }
+
+    @Test
+    fun `when one seat of a hold is released then only that seat becomes available again`() {
+        val hold = useCase.hold(userId, flightId, seats("12A", "12B", "12C"))
+
+        val updated = useCase.cancelSeats(userId, hold.id, listOf(SeatNumber.of("12B")))
+
+        assertEquals(listOf("12A", "12C"), updated.seats.map { it.seatNumber.value })
+        assertEquals(listOf("12A", "12C"), repository.heldSeats(flightId))
+        assertEquals(ReservationStatus.PENDING, repository.findById(hold.id)?.status)
+    }
+
+    @Test
+    fun `when every seat of a hold is released then the whole reservation is cancelled`() {
+        val hold = useCase.hold(userId, flightId, seats("12A", "12B"))
+
+        val released = useCase.cancelSeats(userId, hold.id, listOf(SeatNumber.of("12A"), SeatNumber.of("12B")))
+
+        assertEquals(ReservationStatus.CANCELLED, released.status)
+        assertEquals(emptyList(), repository.heldSeats(flightId))
+    }
+
+    @Test
+    fun `when a seat that is not part of the hold is released then nothing changes`() {
+        val hold = useCase.hold(userId, flightId, seats("12A"))
+
+        assertFailsWith<NotFoundException> { useCase.cancelSeats(userId, hold.id, listOf(SeatNumber.of("13C"))) }
+
+        assertEquals(listOf("12A"), repository.heldSeats(flightId))
+        assertEquals(ReservationStatus.PENDING, repository.findById(hold.id)?.status)
     }
 
     @Test
@@ -195,6 +227,16 @@ class ReservationUseCaseTest {
             held.remove(reservationId)
             reservations[reservationId] = released
             return released
+        }
+
+        override fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation? {
+            val current = reservations[reservationId] ?: return null
+            if (current.status != ReservationStatus.PENDING) return current
+            val remaining = current.seats.filter { it.seatNumber.value !in seatNumbers }
+            held[reservationId]?.removeAll(seatNumbers.toSet())
+            val updated = current.copy(seats = remaining)
+            reservations[reservationId] = updated
+            return updated
         }
 
         override fun findExpired(at: Instant, limit: Int): List<Reservation> =

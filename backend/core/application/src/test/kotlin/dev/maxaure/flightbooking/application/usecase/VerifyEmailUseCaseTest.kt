@@ -7,6 +7,9 @@ import dev.maxaure.flightbooking.application.port.out.PasswordHasher
 import dev.maxaure.flightbooking.application.port.out.PendingRegistrationStore
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.application.port.out.VerificationCodeGenerator
+import dev.maxaure.flightbooking.application.usecase.user.RegisterUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.ResendVerificationUseCase
+import dev.maxaure.flightbooking.application.usecase.user.VerifyEmailUseCase
 import dev.maxaure.flightbooking.domain.model.user.Email
 import dev.maxaure.flightbooking.domain.model.user.PasswordHash
 import dev.maxaure.flightbooking.domain.model.user.RegisterUserCommand
@@ -28,7 +31,6 @@ import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
