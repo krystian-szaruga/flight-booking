@@ -10,6 +10,7 @@ import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import dev.maxaure.flightbooking.application.port.`in`.RevokeToken
 import dev.maxaure.flightbooking.application.port.`in`.SearchAirports
 import dev.maxaure.flightbooking.application.port.`in`.SearchFlights
+import dev.maxaure.flightbooking.application.port.`in`.UpdateProfile
 import dev.maxaure.flightbooking.application.port.`in`.VerifyEmail
 import dev.maxaure.flightbooking.application.port.out.MailSender
 import dev.maxaure.flightbooking.application.port.out.PendingRegistrationStore
@@ -27,12 +28,13 @@ import dev.maxaure.flightbooking.application.port.out.RevokedTokenRepository
 import dev.maxaure.flightbooking.application.port.out.PasswordHasher
 import dev.maxaure.flightbooking.application.usecase.CatalogueIngestionUseCase
 import dev.maxaure.flightbooking.application.usecase.FlightSearchUseCase
-import dev.maxaure.flightbooking.application.usecase.RegisterUserUseCase
-import dev.maxaure.flightbooking.application.usecase.ResendVerificationUseCase
-import dev.maxaure.flightbooking.application.usecase.VerifyEmailUseCase
+import dev.maxaure.flightbooking.application.usecase.user.RegisterUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.ResendVerificationUseCase
+import dev.maxaure.flightbooking.application.usecase.user.VerifyEmailUseCase
 import dev.maxaure.flightbooking.domain.model.user.verification.ResendBackoff
-import dev.maxaure.flightbooking.application.usecase.AuthenticateUserUseCase
-import dev.maxaure.flightbooking.application.usecase.GetCurrentUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.AuthenticateUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.GetCurrentUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.UpdateProfileUseCase
 import dev.maxaure.flightbooking.application.usecase.ListMyReservationsUseCase
 import dev.maxaure.flightbooking.application.usecase.RevokeTokenUseCase
 import dev.maxaure.flightbooking.application.usecase.ReservationUseCase
@@ -119,6 +121,9 @@ internal class UseCaseConfig {
 
     @Bean
     fun getCurrentUser(users: UserRepository): GetCurrentUser = GetCurrentUserUseCase(users)
+
+    @Bean
+    fun updateProfile(users: UserRepository): UpdateProfile = UpdateProfileUseCase(users)
 
     @Bean
     fun revokeToken(revokedTokens: RevokedTokenRepository): RevokeToken =

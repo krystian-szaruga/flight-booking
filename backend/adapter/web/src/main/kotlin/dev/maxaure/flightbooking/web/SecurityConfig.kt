@@ -1,4 +1,4 @@
-package dev.maxaure.flightbooking.bootstrap
+package dev.maxaure.flightbooking.web
 
 import jakarta.servlet.Filter
 import org.springframework.beans.factory.annotation.Qualifier

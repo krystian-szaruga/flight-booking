@@ -10,15 +10,17 @@ class ReservationRequestBindingTest {
     private val jsonMapper = JsonMapper.builder().addModule(KotlinModule.Builder().build()).build()
 
     @Test
-    fun `when a hold request arrives as json then every seat and passenger name is bound`() {
+    fun `when a hold request arrives as json then every seat and its passenger type are bound`() {
         val body = """
-            {"seats":[{"seat":"12A","passengerName":"Ada Lovelace"},{"seat":"12B","passengerName":"Alan Turing"}]}
+            {"seats":[{"seat":"12A","passengerType":"SELF"},{"seat":"12B","passengerType":"OTHER","firstName":"Alan","lastName":"Turing"}]}
         """.trimIndent()
 
         val request = jsonMapper.readValue(body, HoldSeatsRequest::class.java)
 
         assertEquals(2, request.seats.size)
-        assertEquals("12A", request.seats[0].seat)
-        assertEquals("Alan Turing", request.seats[1].passengerName)
+        assertEquals("12B", request.seats[1].seat)
+        assertEquals("OTHER", request.seats[1].passengerType?.name)
+        assertEquals("Alan", request.seats[1].firstName)
+        assertEquals("Turing", request.seats[1].lastName)
     }
 }

@@ -30,13 +30,14 @@ internal object ReservationMapper {
     )
 
     fun seatToDomain(seat: ReservationSeatEntity, seatNumber: SeatNumber): PassengerSeat =
-        PassengerSeat(seatNumber = seatNumber, passengerName = seat.passengerName)
+        PassengerSeat(seatNumber = seatNumber, firstName = seat.firstName, lastName = seat.lastName)
 
     fun seatToEntity(reservationId: UUID, flightSeatId: UUID, seat: PassengerSeat): ReservationSeatEntity =
         ReservationSeatEntity(
             id = UUID.randomUUID(),
             reservationId = reservationId,
             flightSeatId = flightSeatId,
-            passengerName = seat.passengerName,
+            firstName = seat.firstName,
+            lastName = seat.lastName,
         )
 }

@@ -3,7 +3,6 @@ package dev.maxaure.flightbooking.web.reservation
 import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
-import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.user.UserId
 import dev.maxaure.flightbooking.web.auth.CurrentUser
 import jakarta.validation.Valid
@@ -40,7 +39,7 @@ internal class ReservationController(
             reservations.hold(
                 userId = userId,
                 flightId = flightId,
-                seats = request.seats.map { PassengerSeat(SeatNumber.of(it.seat), it.passengerName.trim()) },
+                seats = request.seats.map { it.toRequest() },
             ),
         )
 
@@ -50,4 +49,14 @@ internal class ReservationController(
         @PathVariable reservationId: UUID,
     ): ReservationResponse =
         ReservationResponse.from(reservations.cancel(userId, reservationId))
+
+    @DeleteMapping("/{reservationId}/seats")
+    fun cancelSeats(
+        @CurrentUser userId: UserId,
+        @PathVariable reservationId: UUID,
+        @RequestBody @Valid request: CancelSeatsRequest,
+    ): ReservationResponse =
+        ReservationResponse.from(
+            reservations.cancelSeats(userId, reservationId, request.seats.map(SeatNumber::of)),
+        )
 }

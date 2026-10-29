@@ -59,14 +59,33 @@ data class User(
     val passwordHash: PasswordHash,
     val createdAt: Instant,
     val emailVerifiedAt: Instant? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
 ) {
     val isVerified: Boolean
         get() = emailVerifiedAt != null
 
+    val hasName: Boolean
+        get() = !firstName.isNullOrBlank() && !lastName.isNullOrBlank()
+
     fun verify(now: Instant): User =
         copy(emailVerifiedAt = emailVerifiedAt ?: now)
 
+    fun rename(firstName: String, lastName: String): User {
+        val first = firstName.trim()
+        val last = lastName.trim()
+        if (first.isEmpty() || last.isEmpty()) {
+            throw InvalidDomainValueException("First and last name must both be provided")
+        }
+        if (first.length > MAX_NAME_LENGTH || last.length > MAX_NAME_LENGTH) {
+            throw InvalidDomainValueException("Name must be at most $MAX_NAME_LENGTH characters")
+        }
+        return copy(firstName = first, lastName = last)
+    }
+
     companion object {
+        private const val MAX_NAME_LENGTH = 100
+
         fun verified(email: Email, passwordHash: PasswordHash, now: Instant, id: UserId = UserId.new()): User =
             User(id = id, email = email, passwordHash = passwordHash, createdAt = now, emailVerifiedAt = now)
     }

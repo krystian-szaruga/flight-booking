@@ -16,3 +16,5 @@ data class RevokeTokenCommand(val tokenId: UUID, val expiresAt: Instant)
 data class VerifyEmailCommand(val email: String, val code: String, val address: String)
 
 data class ResendVerificationCommand(val email: String, val address: String)
+
+data class UpdateProfileCommand(val firstName: String, val lastName: String)

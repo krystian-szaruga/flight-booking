@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ApiError, cancelReservation, getMyReservations } from '../api/client'
+import { ApiError, cancelReservation, cancelReservationSeats, getMyReservations } from '../api/client'
 import type { ReservationResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { isUnauthorized, useRequireAuth } from '../auth/useRequireAuth'
-import { formatRemaining, useRemainingSeconds } from '../components/useRemainingSeconds'
+import { ReservationRow } from '../components/ReservationRow'
 
 export function MyReservationsPage() {
   const { user } = useAuth()
@@ -41,12 +41,20 @@ export function MyReservationsPage() {
     return () => controller.abort()
   }, [load, user])
 
-  const onCancel = async (reservationId: string) => {
+  const onCancel = async (reservationId: string, seats?: string[]) => {
     setBusyId(reservationId)
     setError(null)
     try {
-      await cancelReservation(reservationId)
-      load()
+      const cancelled = seats?.length
+        ? await cancelReservationSeats(reservationId, seats)
+        : await cancelReservation(reservationId)
+      setReservations((current) =>
+        current
+          ? current.map((reservation) =>
+              reservation.reservationId === cancelled.reservationId ? cancelled : reservation,
+            )
+          : current,
+      )
     } catch (cause) {
       if (isUnauthorized(cause)) {
         sendToAuth()
@@ -93,43 +101,5 @@ export function MyReservationsPage() {
         </ul>
       )}
     </section>
-  )
-}
-
-function ReservationRow({
-  reservation,
-  busy,
-  onCancel,
-}: {
-  reservation: ReservationResponse
-  busy: boolean
-  onCancel: (reservationId: string) => void
-}) {
-  const remaining = useRemainingSeconds(reservation.status === 'PENDING' ? reservation.expiresAt : null)
-
-  return (
-    <li className="card reservation-item">
-      <div className="reservation-head">
-        <strong>{reservation.status.toLowerCase()}</strong>
-        <span className="muted">
-          {reservation.seats.length} seat{reservation.seats.length === 1 ? '' : 's'} ·{' '}
-          {reservation.seats.map((seat) => seat.seat).join(', ')}
-        </span>
-      </div>
-      {remaining !== null && <p className="muted">Held for {formatRemaining(remaining)}</p>}
-      <div className="reservation-actions">
-        <Link to={`/flights/${encodeURIComponent(reservation.flightId)}/seats`}>Open flight</Link>
-        {reservation.status === 'PENDING' && (
-          <button
-            type="button"
-            className="link-button"
-            disabled={busy}
-            onClick={() => onCancel(reservation.reservationId)}
-          >
-            Cancel
-          </button>
-        )}
-      </div>
-    </li>
   )
 }

@@ -24,7 +24,7 @@ import java.time.Duration
 @ApplyExtension(SpringExtension::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(MutableClockConfig::class, MailOutboxConfig::class)
-class AuthItSmokeTest(
+class AuthTest(
     @Autowired private val jdbc: JdbcTemplate,
     @Autowired private val clock: MutableClock,
     @LocalServerPort private val port: Int,
@@ -142,7 +142,7 @@ class AuthItSmokeTest(
             .uri("/api/v1/reservations/flights/${CatalogueTestSeed.FLIGHT_ID}")
             .contentType(MediaType.APPLICATION_JSON)
             .header(HttpHeaders.COOKIE, login(client, "verified@example.com", "s3cret123").cookie)
-            .body("""{"seats":[{"seat":"12A","passengerName":"Ada Lovelace"}]}""")
+            .body("""{"seats":[{"seat":"12A","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace"}]}""")
             .exchange { _, res -> res.statusCode.value() }
 
         status shouldBeExactly 201

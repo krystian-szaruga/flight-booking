@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import type { Cabin, FlightSummaryResponse } from '../api/types'
+import { AfterAuthLink } from './AfterAuthLink'
 
 const formatter = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 2,
@@ -27,6 +27,7 @@ export function FlightCard({
   cabinFilter?: Cabin
 }) {
   const cheapest = Math.min(...flight.fares.map((fare) => fare.price))
+  const seatPath = `/flights/${flight.flightId}/seats${cabinFilter ? `?cabin=${cabinFilter}` : ''}`
 
   return (
     <article className="flight-card">
@@ -67,12 +68,9 @@ export function FlightCard({
 
       <footer className="flight-card-footer">
         <span className="muted">{flight.availableSeats} seats available in total</span>
-        <Link
-          to={`/flights/${flight.flightId}/seats${cabinFilter ? `?cabin=${cabinFilter}` : ''}`}
-          className="button"
-        >
+        <AfterAuthLink to={seatPath} state={{ afterAuth: seatPath }} className="button">
           Choose a seat
-        </Link>
+        </AfterAuthLink>
       </footer>
     </article>
   )

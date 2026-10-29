@@ -10,7 +10,8 @@ import java.time.ZoneId
 data class SearchFlightsQuery(
     val origin: IataCode,
     val destination: IataCode,
-    val departureDate: LocalDate,
+    val departureFrom: LocalDate,
+    val departureTo: LocalDate,
     val zone: ZoneId,
     val cabin: Cabin? = null,
 ) {
@@ -18,11 +19,17 @@ data class SearchFlightsQuery(
         if (origin == destination) {
             throw InvalidDomainValueException("Origin and destination must differ, got '$origin' twice")
         }
+        if (departureTo.isBefore(departureFrom)) {
+            throw InvalidDomainValueException("Departure window must end on or after it starts")
+        }
+        if (java.time.temporal.ChronoUnit.DAYS.between(departureFrom, departureTo) > MAX_WINDOW_DAYS) {
+            throw InvalidDomainValueException("Departure window must be at most $MAX_WINDOW_DAYS days")
+        }
     }
 
-    val from: Instant get() = departureDate.atStartOfDay(zone).toInstant()
+    val from: Instant get() = departureFrom.atStartOfDay(zone).toInstant()
 
-    val until: Instant get() = departureDate.plusDays(1).atStartOfDay(zone).toInstant()
+    val until: Instant get() = departureTo.plusDays(1).atStartOfDay(zone).toInstant()
 
     fun isDepartedBy(now: Instant): Boolean = !until.isAfter(now)
 
@@ -36,6 +43,8 @@ data class SearchFlightsQuery(
     }
 
     private companion object {
+        const val MAX_WINDOW_DAYS = 60L
+
         val DEPARTURE_ORDER: Comparator<FlightMatch> =
             compareBy({ it.departureAt }, { it.flightNumber })
     }

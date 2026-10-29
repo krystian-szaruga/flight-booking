@@ -24,19 +24,21 @@ class FlightSearchUseCase(
     override fun search(
         origin: String,
         destination: String,
-        date: LocalDate,
+        from: LocalDate,
+        to: LocalDate,
         zone: ZoneId,
         cabin: String?,
     ): List<FlightMatch> {
         val query = SearchFlightsQuery(
             origin = IataCode.of(origin),
             destination = IataCode.of(destination),
-            departureDate = date,
+            departureFrom = from,
+            departureTo = to,
             zone = zone,
             cabin = cabin?.let(Cabin::parse),
         )
         if (query.isDepartedBy(clock.instant())) {
-            throw InvalidDomainValueException("Cannot search flights that already departed, asked for $date")
+            throw InvalidDomainValueException("Cannot search flights that already departed, asked up to $to")
         }
         return query.matchesOf(search.search(query))
     }

@@ -220,8 +220,8 @@ export TESTCONTAINERS_RYUK_DISABLED=true
 
 Integration tests start their own PostgreSQL container. They live in `backend/bootstrap/src/test` and use Kotest with `SpringExtension`:
 
-- `AuthItSmokeTest` — register, duplicate email, malformed email, login, wrong password, unknown email, email case, short password, tampered cookie, logout, token expiry
-- `ReservationItSmokeTest` — a user only sees their own reservations, unknown user gets an empty list, cross-user cancel returns `404`
+- `AuthTest` — register, duplicate email, malformed email, login, wrong password, unknown email, email case, short password, tampered cookie, logout, token expiry
+- `ReservationTest` — a user only sees their own reservations, unknown user gets an empty list, cross-user cancel returns `404`
 
 The catalogue is seeded per test by `CatalogueTestSeed`, which inserts airports, one flight, a fare class and a seat inventory directly through SQL. The tests never depend on feed ingestion.
 

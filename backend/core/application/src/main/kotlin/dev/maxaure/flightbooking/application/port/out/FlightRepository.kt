@@ -18,5 +18,7 @@ interface FlightRepository {
 
     fun countSeats(flightId: UUID): Int
 
+    fun countSoldSeats(flightId: UUID): Int
+
     fun findDeparturesBetween(from: Instant, before: Instant): List<Flight>
 }

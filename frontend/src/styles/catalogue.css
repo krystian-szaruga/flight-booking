@@ -1,0 +1,201 @@
+.deal-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.deal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  height: 100%;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+
+.deal-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px var(--shadow);
+}
+
+.deal-route {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.deal-code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deal-arrow {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.deal-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.deal-price {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.deal-seats {
+  font-size: 0.8rem;
+}
+
+.flight-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.flight-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.flight-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.flight-card-header > div {
+  min-width: 0;
+}
+
+.flight-number,
+.muted {
+  overflow-wrap: anywhere;
+}
+
+.flight-number {
+  font-weight: 600;
+  margin: 0;
+}
+
+.flight-times {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.fare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.92rem;
+}
+
+.fare-table th,
+.fare-table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.fare-table td:nth-child(2),
+.fare-table td:nth-child(3),
+.fare-table th:nth-child(2),
+.fare-table th:nth-child(3) {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.fare-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
+}
+
+.price.cheapest {
+  font-weight: 600;
+}
+
+.flight-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.flight-day {
+  margin-bottom: 1.5rem;
+}
+
+.flight-day-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.flight-day-heading .muted {
+  font-weight: 400;
+}
+
+.search-results {
+  margin-top: 1.75rem;
+}
+
+.flight-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.flight-grid > li {
+  min-width: 0;
+}
+
+.flight-grid .flight-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flight-grid .fare-table {
+  margin: 0;
+}
+
+.flight-grid .flight-card-footer {
+  margin-top: auto;
+}

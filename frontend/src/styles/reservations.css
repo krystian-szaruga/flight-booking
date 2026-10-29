@@ -1,0 +1,33 @@
+.reservation-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.reservation-item {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.reservation-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.reservation-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.reservation-passengers {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}

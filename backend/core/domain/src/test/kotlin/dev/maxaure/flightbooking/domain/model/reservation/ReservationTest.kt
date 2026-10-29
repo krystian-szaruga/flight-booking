@@ -15,8 +15,8 @@ class ReservationTest {
     private val flightId = UUID.randomUUID()
     private val userId = UUID.randomUUID()
     private val seats = listOf(
-        PassengerSeat(SeatNumber.of("12A"), "Ada Lovelace"),
-        PassengerSeat(SeatNumber.of("12B"), "Alan Turing"),
+        PassengerSeat(SeatNumber.of("12A"), "Ada", "Lovelace"),
+        PassengerSeat(SeatNumber.of("12B"), "Alan", "Turing"),
     )
 
     @Test

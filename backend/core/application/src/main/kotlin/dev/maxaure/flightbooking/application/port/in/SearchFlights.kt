@@ -12,7 +12,8 @@ interface SearchFlights {
     fun search(
         origin: String,
         destination: String,
-        date: LocalDate,
+        from: LocalDate,
+        to: LocalDate,
         zone: ZoneId,
         cabin: String? = null,
     ): List<FlightMatch>

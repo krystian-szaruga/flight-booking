@@ -103,5 +103,7 @@ private object EmptyFlightRepository : FlightRepository {
 
     override fun countSeats(flightId: UUID): Int = 0
 
+    override fun countSoldSeats(flightId: UUID): Int = 0
+
     override fun findDeparturesBetween(from: Instant, before: Instant): List<Flight> = emptyList()
 }

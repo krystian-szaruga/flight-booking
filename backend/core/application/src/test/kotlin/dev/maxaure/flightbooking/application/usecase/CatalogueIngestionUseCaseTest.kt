@@ -110,6 +110,19 @@ class CatalogueIngestionUseCaseTest {
     }
 
     @Test
+    fun `when a flight with a held seat is delivered again with a new layout then the held inventory is kept`() {
+        seedAirports()
+        val created = upsertFlight(feedFlight(seatRows = 10))
+        flights.hold(created.id, "1A")
+
+        val redelivered = upsertFlight(feedFlight(seatRows = 20))
+
+        assertEquals(created.id, redelivered.id)
+        assertEquals(60, flights.countSeats(created.id))
+        assertEquals(1, flights.countSoldSeats(created.id))
+    }
+
+    @Test
     fun `when a flight references an airport that was never ingested then ingestion fails`() {
         upsertAirport(FeedAirport("WAW", "Warsaw Chopin", "Warsaw", "PL"))
 
@@ -251,6 +264,11 @@ private class InMemoryAirportRepository : AirportRepository {
 private class InMemoryFlightRepository : FlightRepository {
     private val byIdentity = LinkedHashMap<FlightIdentity, Flight>()
     private val seats = mutableMapOf<UUID, List<Seat>>()
+    private val held = mutableMapOf<UUID, MutableSet<String>>()
+
+    fun hold(flightId: UUID, seatNumber: String) {
+        held.getOrPut(flightId) { mutableSetOf() }.add(seatNumber)
+    }
 
     val distinctFlights: Int get() = byIdentity.size
 
@@ -265,6 +283,8 @@ private class InMemoryFlightRepository : FlightRepository {
     }
 
     override fun countSeats(flightId: UUID): Int = seats[flightId]?.size ?: 0
+
+    override fun countSoldSeats(flightId: UUID): Int = held[flightId]?.size ?: 0
 
     override fun findDeparturesBetween(from: Instant, before: Instant): List<Flight> =
         byIdentity.values.filter { !it.departureAt.isBefore(from) && it.departureAt.isBefore(before) }

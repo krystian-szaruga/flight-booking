@@ -1,0 +1,73 @@
+.auth-card {
+  max-width: 380px;
+  margin: 2rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.auth-card .link-button {
+  align-self: flex-start;
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.password-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.session-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+}

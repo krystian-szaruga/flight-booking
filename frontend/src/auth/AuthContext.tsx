@@ -12,6 +12,7 @@ export interface AuthValue {
   verify: (email: string, code: string) => Promise<void>
   resend: (email: string) => Promise<number>
   signOut: () => Promise<void>
+  updateProfile: (firstName: string, lastName: string) => Promise<void>
   refresh: () => Promise<UserResponse | null>
 }
 
@@ -70,9 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const updateProfile = useCallback(async (firstName: string, lastName: string) => {
+    setUser(await authApi.updateProfile(firstName, lastName))
+  }, [])
+
   const value = useMemo<AuthValue>(
-    () => ({ user, loading, signIn, signUp, verify, resend, signOut, refresh }),
-    [user, loading, signIn, signUp, verify, resend, signOut, refresh],
+    () => ({ user, loading, signIn, signUp, verify, resend, signOut, updateProfile, refresh }),
+    [user, loading, signIn, signUp, verify, resend, signOut, updateProfile, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

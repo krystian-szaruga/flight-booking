@@ -9,6 +9,8 @@ internal data class UserResponse(
     val email: String,
     val createdAt: Instant,
     val emailVerifiedAt: Instant?,
+    val firstName: String?,
+    val lastName: String?,
 ) {
     companion object {
         fun from(user: User): UserResponse =
@@ -17,6 +19,8 @@ internal data class UserResponse(
                 email = user.email.value,
                 createdAt = user.createdAt,
                 emailVerifiedAt = user.emailVerifiedAt,
+                firstName = user.firstName,
+                lastName = user.lastName,
             )
     }
 }

@@ -5,12 +5,14 @@ import dev.maxaure.flightbooking.application.port.`in`.GetCurrentUser
 import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
 import dev.maxaure.flightbooking.application.port.`in`.ResendVerification
 import dev.maxaure.flightbooking.application.port.`in`.RevokeToken
+import dev.maxaure.flightbooking.application.port.`in`.UpdateProfile
 import dev.maxaure.flightbooking.application.port.`in`.VerifyEmail
 import dev.maxaure.flightbooking.application.port.out.AccessTokenIssuer
 import dev.maxaure.flightbooking.domain.model.user.AuthenticateUserCommand
 import dev.maxaure.flightbooking.domain.model.user.RegisterUserCommand
 import dev.maxaure.flightbooking.domain.model.user.ResendVerificationCommand
 import dev.maxaure.flightbooking.domain.model.user.RevokeTokenCommand
+import dev.maxaure.flightbooking.domain.model.user.UpdateProfileCommand
 import dev.maxaure.flightbooking.domain.model.user.User
 import dev.maxaure.flightbooking.domain.model.user.UserId
 import dev.maxaure.flightbooking.domain.model.user.VerifyEmailCommand
@@ -26,6 +28,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -38,6 +41,7 @@ internal class AuthController(
     private val resendVerification: ResendVerification,
     private val authenticateUser: AuthenticateUser,
     private val getCurrentUser: GetCurrentUser,
+    private val updateProfile: UpdateProfile,
     private val revokeToken: RevokeToken,
     private val tokens: AccessTokenIssuer,
     private val cookie: AuthCookie,
@@ -107,6 +111,15 @@ internal class AuthController(
     @GetMapping("/me")
     fun me(@CurrentUser userId: UserId): UserResponse =
         UserResponse.from(getCurrentUser.currentUser(userId))
+
+    @PutMapping("/me")
+    fun updateProfile(
+        @CurrentUser userId: UserId,
+        @RequestBody @Valid request: UpdateProfileRequest,
+    ): UserResponse =
+        UserResponse.from(
+            updateProfile.update(userId, UpdateProfileCommand(request.firstName, request.lastName)),
+        )
 
     private fun signedIn(user: User, status: HttpStatus): ResponseEntity<Any> =
         ResponseEntity.status(status)

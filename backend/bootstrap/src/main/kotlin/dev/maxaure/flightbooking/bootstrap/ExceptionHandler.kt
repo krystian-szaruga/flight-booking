@@ -5,6 +5,7 @@ import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.user.EmailNotVerified
 import dev.maxaure.flightbooking.domain.model.user.InvalidCredentials
+import dev.maxaure.flightbooking.domain.model.user.ProfileIncomplete
 import dev.maxaure.flightbooking.domain.model.user.TooManyLoginAttempts
 import dev.maxaure.flightbooking.domain.model.user.verification.InvalidVerificationCode
 import org.springframework.http.HttpHeaders
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
-internal class DomainExceptionHandler {
+internal class ExceptionHandler {
 
     @ExceptionHandler(NotFoundException::class)
     fun notFound(ex: NotFoundException): ProblemDetail =
@@ -46,6 +47,11 @@ internal class DomainExceptionHandler {
     fun emailNotVerified(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Verify your email address first")
 
+    @ExceptionHandler(ProfileIncomplete::class)
+    fun profileIncomplete(): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Add your first and last name to your profile first")
+            .apply { setProperty("code", PROFILE_INCOMPLETE) }
+
     @ExceptionHandler(TooManyLoginAttempts::class)
     fun tooManyAttempts(ex: TooManyLoginAttempts): ResponseEntity<ProblemDetail> =
         ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
@@ -61,5 +67,6 @@ internal class DomainExceptionHandler {
 
     private companion object {
         const val INVALID_VERIFICATION_CODE = "invalid_or_expired_code"
+        const val PROFILE_INCOMPLETE = "profile_incomplete"
     }
 }

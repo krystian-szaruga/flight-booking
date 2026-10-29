@@ -49,23 +49,39 @@ internal class FlightRepositoryAdapter(
     override fun replaceSeatInventory(flightId: UUID, seats: List<Seat>) {
         val flight = flights.getReferenceById(flightId)
         val fareClasses = fares.findAllById(seats.map { it.fareClassId }.distinct()).associateBy { it.id }
-        this.seats.deleteByFlightId(flightId)
-        this.seats.flush()
-        this.seats.saveAll(
-            seats.map { seat ->
-                FlightSeatEntity(
-                    id = UUID.randomUUID(),
-                    flight = flight,
-                    fareClass = fareClasses.getValue(seat.fareClassId),
-                    seatNumber = seat.seatNumber.value,
-                    status = seat.status.name,
-                    version = seat.version,
+        val wanted = seats.associateBy { it.seatNumber.value }
+        val existing = this.seats.findByFlightIdOrderBySeatNumber(flightId).associateBy { it.seatNumber }
+
+        val obsolete = existing.values.filter { it.seatNumber !in wanted.keys && it.reservationId == null }
+        if (obsolete.isNotEmpty()) {
+            this.seats.deleteAll(obsolete)
+            this.seats.flush()
+        }
+
+        seats.forEach { seat ->
+            val fareClass = fareClasses.getValue(seat.fareClassId)
+            val current = existing[seat.seatNumber.value]
+            if (current == null) {
+                this.seats.save(
+                    FlightSeatEntity(
+                        id = UUID.randomUUID(),
+                        flight = flight,
+                        fareClass = fareClass,
+                        seatNumber = seat.seatNumber.value,
+                        status = seat.status.name,
+                        version = seat.version,
+                    ),
                 )
-            },
-        )
+            } else if (current.status == AVAILABLE) {
+                current.fareClass = fareClass
+            }
+        }
     }
 
     override fun countSeats(flightId: UUID): Int = seats.countByFlightId(flightId).toInt()
+
+    override fun countSoldSeats(flightId: UUID): Int =
+        seats.findByFlightIdOrderBySeatNumber(flightId).count { it.reservationId != null }
 
     override fun findDeparturesBetween(from: Instant, before: Instant): List<Flight> =
         flights.findByDepartureAtGreaterThanEqualAndDepartureAtLessThan(from, before).map(::toDomainWithLayout)
@@ -77,7 +93,12 @@ internal class FlightRepositoryAdapter(
         return if (maxRow == null) mapped else mapped.copy(seatRows = maxRow)
     }
 
+    private companion object {
+        const val AVAILABLE = "AVAILABLE"
+    }
+
     private fun FlightEntity.syncFares(incoming: List<FareClass>) {
+
         val existingById = fares.associateBy { it.id }
         val incomingIds = incoming.map { it.id }.toSet()
         this.fares.removeIf { it.id !in incomingIds }

@@ -22,11 +22,12 @@ internal class CatalogueController(
     fun search(
         @RequestParam origin: String,
         @RequestParam destination: String,
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate?,
         @RequestParam(required = false) cabin: String?,
         @RequestParam(required = false, defaultValue = "Europe/Warsaw") zone: ZoneId,
     ): List<FlightSummaryResponse> =
-        flightSearch.search(origin, destination, date, zone, cabin).map(FlightSummaryResponse::from)
+        flightSearch.search(origin, destination, from, to ?: from, zone, cabin).map(FlightSummaryResponse::from)
 
     @GetMapping("/{flightId}/seats")
     fun seatMap(@PathVariable flightId: UUID): SeatMapResponse =
