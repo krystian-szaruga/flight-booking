@@ -2,6 +2,7 @@ package dev.maxaure.flightbooking.domain.model.search
 
 import dev.maxaure.flightbooking.domain.model.codes.IataCode
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 data class FlightMatch(
@@ -9,6 +10,7 @@ data class FlightMatch(
     val flightNumber: String,
     val origin: IataCode,
     val destination: IataCode,
+    val departureTimeZone: ZoneId,
     val departureAt: Instant,
     val arrivalAt: Instant,
     val aircraft: String,

@@ -6,12 +6,17 @@ const priceFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 })
 
-function day(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+function day(iso: string, timeZone?: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    timeZone,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
 }
 
-function timeOfDay(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+function timeOfDay(iso: string, timeZone?: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { timeZone, hour: '2-digit', minute: '2-digit' })
 }
 
 export function DealCard({ deal }: { deal: DealResponse }) {
@@ -25,7 +30,8 @@ export function DealCard({ deal }: { deal: DealResponse }) {
         <span className="deal-code">{deal.destination}</span>
       </div>
       <p className="muted">
-        {day(deal.departureAt)} · {timeOfDay(deal.departureAt)} · {deal.flightNumber}
+        {day(deal.departureAt, deal.departureTimeZone)} ·{' '}
+        {timeOfDay(deal.departureAt, deal.departureTimeZone)} · {deal.flightNumber}
       </p>
       <div className="deal-footer">
         <span className="deal-price">

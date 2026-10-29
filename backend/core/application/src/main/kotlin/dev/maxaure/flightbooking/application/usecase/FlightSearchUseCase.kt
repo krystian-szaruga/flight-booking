@@ -55,6 +55,7 @@ class FlightSearchUseCase(
                 flightNumber = source.flightNumber,
                 origin = source.origin,
                 destination = source.destination,
+                departureTimeZone = source.departureTimeZone,
                 departureAt = source.departureAt,
                 aircraft = source.aircraft,
                 status = source.status,

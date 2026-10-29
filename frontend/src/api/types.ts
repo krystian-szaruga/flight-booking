@@ -14,6 +14,7 @@ export interface FlightSummaryResponse {
   flightNumber: string
   origin: string
   destination: string
+  departureTimeZone?: string
   departureAt: string
   arrivalAt: string
   aircraft: string
@@ -35,6 +36,7 @@ export interface SeatMapResponse {
   flightNumber: string
   origin: string
   destination: string
+  departureTimeZone?: string
   departureAt: string
   aircraft: string
   status: string
@@ -96,6 +98,7 @@ export interface DealResponse {
   flightNumber: string
   origin: string
   destination: string
+  departureTimeZone?: string
   departureAt: string
   arrivalAt: string
   cabin: Cabin

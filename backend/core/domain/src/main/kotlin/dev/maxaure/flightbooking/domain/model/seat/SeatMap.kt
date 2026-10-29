@@ -6,6 +6,7 @@ import dev.maxaure.flightbooking.domain.model.pricing.Cabin
 import dev.maxaure.flightbooking.domain.model.pricing.FareClass
 import dev.maxaure.flightbooking.domain.model.pricing.Price
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 data class SeatMap(
@@ -13,6 +14,7 @@ data class SeatMap(
     val flightNumber: String,
     val origin: IataCode,
     val destination: IataCode,
+    val departureTimeZone: ZoneId,
     val departureAt: Instant,
     val aircraft: String,
     val status: String,

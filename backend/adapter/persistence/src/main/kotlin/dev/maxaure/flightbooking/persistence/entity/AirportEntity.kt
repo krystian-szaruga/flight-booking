@@ -29,6 +29,9 @@ internal class  AirportEntity(
     @Column(name = "country_code", length = 2)
     var countryCode: String,
 
+    @Column(name = "time_zone")
+    var timeZone: String? = null,
+
     @Column(name = "source", nullable = false)
     var source: String = "manual",
 

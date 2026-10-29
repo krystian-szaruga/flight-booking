@@ -40,7 +40,7 @@ export function SearchResults({
         groupByDay(flights).map(([day, dayFlights]) => (
           <section key={day} className="flight-day">
             <h3 className="flight-day-heading">
-              {dayLabel(dayFlights[0].departureAt)}
+              {dayLabel(`${day}T12:00:00Z`, 'UTC')}
               <span className="muted">
                 {' '}
                 · {dayFlights.length} flight{dayFlights.length === 1 ? '' : 's'}

@@ -3,14 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, searchFlights } from '../api/client'
 import type { Cabin, FlightSummaryResponse } from '../api/types'
 import { FlightCard } from '../components/FlightCard'
-
-function dayOf(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
-}
-
-function dayKey(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 10)
-}
+import { dayLabel, groupByDay } from './search/searchCriteria'
 
 export function ResultsPage() {
   const [params] = useSearchParams()
@@ -43,13 +36,7 @@ export function ResultsPage() {
     return () => controller.abort()
   }, [origin, destination, from, to, cabin])
 
-  const days = new Map<string, FlightSummaryResponse[]>()
-  for (const flight of flights ?? []) {
-    const key = dayKey(flight.departureAt)
-    const bucket = days.get(key) ?? []
-    bucket.push(flight)
-    days.set(key, bucket)
-  }
+  const days = groupByDay(flights ?? [])
 
   return (
     <section>
@@ -68,10 +55,10 @@ export function ResultsPage() {
       {flights === null && !error && <p className="muted">Loading flights…</p>}
       {flights?.length === 0 && <p className="muted">No flights match this search.</p>}
 
-      {[...days.entries()].map(([day, dayFlights]) => (
+      {days.map(([day, dayFlights]) => (
         <section key={day} className="flight-day">
           <h2 className="flight-day-heading">
-            {dayOf(dayFlights[0].departureAt)}
+            {dayLabel(`${day}T12:00:00Z`, 'UTC')}
             <span className="muted"> · {dayFlights.length} flight{dayFlights.length === 1 ? '' : 's'}</span>
           </h2>
           <ul className="flight-list">

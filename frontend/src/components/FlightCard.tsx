@@ -6,8 +6,8 @@ const formatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 })
 
-function timeOfDay(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+function timeOfDay(iso: string, timeZone?: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { timeZone, hour: '2-digit', minute: '2-digit' })
 }
 
 function duration(departureAt: string, arrivalAt: string): string {
@@ -39,9 +39,9 @@ export function FlightCard({
           </p>
         </div>
         <div className="flight-times">
-          <span>{timeOfDay(flight.departureAt)}</span>
+          <span>{timeOfDay(flight.departureAt, flight.departureTimeZone)}</span>
           <span className="muted">{duration(flight.departureAt, flight.arrivalAt)}</span>
-          <span>{timeOfDay(flight.arrivalAt)}</span>
+          <span>{timeOfDay(flight.arrivalAt, flight.departureTimeZone)}</span>
         </div>
       </header>
 
