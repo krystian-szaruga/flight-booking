@@ -27,6 +27,7 @@ class FlightMatchCabinFilterTest {
         flightNumber = "LO381",
         origin = IataCode.of("WAW"),
         destination = IataCode.of("LIS"),
+        departureTimeZone = ZoneId.of("Europe/Warsaw"),
         departureAt = departure,
         arrivalAt = departure.plusSeconds(4 * 3600),
         aircraft = "A320neo",

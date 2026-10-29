@@ -1,6 +1,7 @@
 package dev.maxaure.flightbooking.persistence.repository
 
 import dev.maxaure.flightbooking.application.port.out.SeatMapSource
+import dev.maxaure.flightbooking.domain.model.catalogue.AirportTimeZones
 import dev.maxaure.flightbooking.domain.model.search.DealsQuery
 import dev.maxaure.flightbooking.domain.model.search.FareOption
 import dev.maxaure.flightbooking.domain.model.search.FlightDeal
@@ -48,6 +49,7 @@ internal class FlightSearchAdapter(
                 flightNumber = flight.flightNumber,
                 origin = IataCode.fromTrusted(flight.origin.iataCode),
                 destination = IataCode.fromTrusted(flight.destination.iataCode),
+                departureTimeZone = AirportTimeZones.of(flight.origin.iataCode),
                 departureAt = flight.departureAt,
                 arrivalAt = flight.arrivalAt,
                 aircraft = flight.aircraft,
@@ -71,6 +73,7 @@ internal class FlightSearchAdapter(
             flightNumber = FlightNumber.fromTrusted(flight.flightNumber),
             origin = IataCode.fromTrusted(flight.origin.iataCode),
             destination = IataCode.fromTrusted(flight.destination.iataCode),
+            departureTimeZone = AirportTimeZones.of(flight.origin.iataCode),
             departureAt = flight.departureAt,
             aircraft = flight.aircraft,
             status = flight.status,
@@ -89,6 +92,7 @@ internal class FlightSearchAdapter(
                 flightNumber = row.flightNumber,
                 origin = IataCode.fromTrusted(row.origin),
                 destination = IataCode.fromTrusted(row.destination),
+                departureTimeZone = AirportTimeZones.of(row.origin),
                 departureAt = row.departureAt,
                 arrivalAt = row.arrivalAt,
                 cabin = Cabin.parse(row.cabin),

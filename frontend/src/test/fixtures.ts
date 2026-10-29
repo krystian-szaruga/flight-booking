@@ -36,6 +36,7 @@ export function flight(overrides: Partial<FlightSummaryResponse> = {}): FlightSu
     flightNumber: 'LO 26',
     origin: 'WAW',
     destination: 'LIS',
+    departureTimeZone: 'Europe/Warsaw',
     departureAt: '2026-11-10T08:00:00Z',
     arrivalAt: '2026-11-10T12:30:00Z',
     aircraft: 'Boeing 737-800',

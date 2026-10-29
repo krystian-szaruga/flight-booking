@@ -3,6 +3,7 @@ package dev.maxaure.flightbooking.domain.model.catalogue
 import dev.maxaure.flightbooking.domain.model.codes.CountryCode
 import dev.maxaure.flightbooking.domain.model.codes.IataCode
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 data class Airport(
@@ -11,6 +12,7 @@ data class Airport(
     val name: String,
     val city: String,
     val countryCode: CountryCode,
+    val timeZone: ZoneId = AirportTimeZones.of(iataCode.value),
     val source: String = MANUAL_SOURCE,
     val syncedAt: Instant? = null,
 ) {

@@ -4,6 +4,7 @@ import dev.maxaure.flightbooking.domain.model.codes.IataCode
 import dev.maxaure.flightbooking.domain.model.pricing.Price
 import dev.maxaure.flightbooking.domain.model.pricing.Cabin
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 data class FlightDeal(
@@ -11,6 +12,7 @@ data class FlightDeal(
     val flightNumber: String,
     val origin: IataCode,
     val destination: IataCode,
+    val departureTimeZone: ZoneId,
     val departureAt: Instant,
     val arrivalAt: Instant,
     val cabin: Cabin,

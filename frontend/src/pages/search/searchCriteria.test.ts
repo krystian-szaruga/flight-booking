@@ -18,18 +18,24 @@ describe('day keys', () => {
     expect(dayKey(lateEvening, 'America/Los_Angeles')).toBe('2026-11-10')
   })
 
-  it('when a flight carries its own zone then the resolver decides which day it lands in', () => {
+  it('when the API reports the airport zone then the flight groups by that zone', () => {
     const flights = [
-      flight({ flightId: 'waw', origin: 'WAW', departureAt: '2026-11-10T23:30:00Z' }),
-      flight({ flightId: 'lis', origin: 'LIS', departureAt: '2026-11-10T23:30:00Z' }),
+      flight({ flightId: 'waw', departureTimeZone: 'Europe/Warsaw', departureAt: '2026-11-10T23:30:00Z' }),
+      flight({ flightId: 'lis', departureTimeZone: 'Europe/Lisbon', departureAt: '2026-11-10T23:30:00Z' }),
     ]
 
-    const groups = groupByDay(flights, (item) => (item.origin === 'LIS' ? 'Europe/Lisbon' : 'Europe/Warsaw'))
+    const groups = groupByDay(flights)
 
     expect(groups.map(([day, items]) => [day, items.map((item) => item.flightId)])).toEqual([
       ['2026-11-11', ['waw']],
       ['2026-11-10', ['lis']],
     ])
+  })
+
+  it('when a flight carries no zone then it falls back to the app zone', () => {
+    const flights = [flight({ flightId: 'legacy', departureTimeZone: undefined, departureAt: '2026-11-10T23:30:00Z' })]
+
+    expect(groupByDay(flights)[0][0]).toBe('2026-11-11')
   })
 
   it('when the app zone is used then flights on either side of midnight land in the app zone day', () => {

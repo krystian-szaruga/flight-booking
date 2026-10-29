@@ -5,6 +5,7 @@ import dev.maxaure.flightbooking.domain.model.codes.IataCode
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
 import dev.maxaure.flightbooking.domain.model.pricing.FareClass
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 object SeatMapAssembler {
@@ -14,6 +15,7 @@ object SeatMapAssembler {
         flightNumber: FlightNumber,
         origin: IataCode,
         destination: IataCode,
+        departureTimeZone: ZoneId,
         departureAt: Instant,
         aircraft: String,
         status: String,
@@ -26,6 +28,7 @@ object SeatMapAssembler {
             flightNumber = flightNumber.value,
             origin = origin,
             destination = destination,
+            departureTimeZone = departureTimeZone,
             departureAt = departureAt,
             aircraft = aircraft,
             status = status,

@@ -20,7 +20,7 @@ export const APP_TIME_ZONE = 'Europe/Warsaw'
 
 export type TzResolver = (flight: FlightSummaryResponse) => string
 
-export const appTz: TzResolver = () => APP_TIME_ZONE
+export const flightTz: TzResolver = (flight) => flight.departureTimeZone ?? APP_TIME_ZONE
 
 const dayFormats = new Map<string, Intl.DateTimeFormat>()
 
@@ -64,7 +64,7 @@ export function flexibilityOf(from: string, to: string): number {
 
 export function groupByDay(
   flights: FlightSummaryResponse[],
-  timeZoneOf: TzResolver = appTz,
+  timeZoneOf: TzResolver = flightTz,
 ): [string, FlightSummaryResponse[]][] {
   const days = new Map<string, FlightSummaryResponse[]>()
   for (const flight of flights) {
