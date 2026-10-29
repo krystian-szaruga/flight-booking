@@ -159,7 +159,7 @@ class AuthItSmokeTest(
             .body("""{"email":"cooldown@example.com"}""")
             .exchange { _, res -> res.statusCode.value() }
 
-        status shouldBeExactly 204
+        status shouldBeExactly 429
         currentCode("cooldown@example.com") shouldBe before
     }
 
