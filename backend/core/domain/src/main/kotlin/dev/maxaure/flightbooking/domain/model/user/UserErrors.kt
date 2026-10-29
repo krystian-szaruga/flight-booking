@@ -6,3 +6,5 @@ class EmailAlreadyRegistered(val email: Email) :
     DomainException("An account with email ${email.value} already exists")
 
 class InvalidCredentials : DomainException("Invalid credentials")
+
+class EmailNotVerified : DomainException("Email address is not verified")

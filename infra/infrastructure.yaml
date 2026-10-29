@@ -30,6 +30,13 @@ spec:
       volumeMounts:
         - name: pgdata
           mountPath: /var/lib/postgresql/18/docker
+    - name: mailpit
+      image: docker.io/axllent/mailpit:latest
+      ports:
+        - containerPort: 1025
+          hostPort: 1025
+        - containerPort: 8025
+          hostPort: 8025
   volumes:
     - name: pgdata
       persistentVolumeClaim:

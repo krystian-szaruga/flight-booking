@@ -1,6 +1,6 @@
 package dev.maxaure.flightbooking.domain.model.catalogue
 
-data class AirportSearchQuery private constructor(
+data class AirportSearchQuery(
     val text: String,
     val limit: Int,
 ) {

@@ -3,9 +3,10 @@ package dev.maxaure.flightbooking.bootstrap
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.NotFoundException
-import dev.maxaure.flightbooking.domain.model.user.EmailAlreadyRegistered
+import dev.maxaure.flightbooking.domain.model.user.EmailNotVerified
 import dev.maxaure.flightbooking.domain.model.user.InvalidCredentials
 import dev.maxaure.flightbooking.domain.model.user.TooManyLoginAttempts
+import dev.maxaure.flightbooking.domain.model.user.verification.InvalidVerificationCode
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -33,13 +34,17 @@ internal class DomainExceptionHandler {
     fun conflict(ex: ConflictException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.message ?: "Conflict")
 
-    @ExceptionHandler(EmailAlreadyRegistered::class)
-    fun emailTaken(): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "An account with this email already exists")
-
     @ExceptionHandler(InvalidCredentials::class)
     fun invalidCredentials(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid credentials")
+
+    @ExceptionHandler(InvalidVerificationCode::class)
+    fun invalidVerificationCode(): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_VERIFICATION_CODE)
+
+    @ExceptionHandler(EmailNotVerified::class)
+    fun emailNotVerified(): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Verify your email address first")
 
     @ExceptionHandler(TooManyLoginAttempts::class)
     fun tooManyAttempts(ex: TooManyLoginAttempts): ResponseEntity<ProblemDetail> =
@@ -53,4 +58,8 @@ internal class DomainExceptionHandler {
             title = "Validation failed"
             setProperty("errors", ex.bindingResult.fieldErrors.associate { it.field to it.defaultMessage })
         }
+
+    private companion object {
+        const val INVALID_VERIFICATION_CODE = "invalid_or_expired_code"
+    }
 }

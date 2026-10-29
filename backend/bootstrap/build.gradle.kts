@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":adapter:provider"))
     implementation(project(":adapter:scheduler"))
     implementation(project(":adapter:security"))
+    implementation(project(":adapter:mail"))
 
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.bundles.spring.runtime)

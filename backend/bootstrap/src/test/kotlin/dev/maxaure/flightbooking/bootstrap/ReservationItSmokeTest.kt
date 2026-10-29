@@ -10,6 +10,7 @@ import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
@@ -17,11 +18,13 @@ import org.springframework.jdbc.core.queryForObject
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.toEntity
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 
 @ApplyExtension(SpringExtension::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(MailOutboxConfig::class)
 class ReservationItSmokeTest(
     @Autowired private val jdbc: JdbcTemplate,
     @LocalServerPort private val port: Int,
@@ -107,6 +110,13 @@ class ReservationItSmokeTest(
                 .body("""{"email":"$email","password":"s3cret123"}""")
                 .retrieve()
                 .toBodilessEntity()
+
+            client.post()
+                .uri("/api/auth/verify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("""{"email":"$email","code":"${MailOutbox.lastCodeFor(email)}"}""")
+                .retrieve()
+                .toBodilessEntity()
         }
 
         private fun sessionCookie(client: RestClient, email: String): String {
@@ -120,21 +130,23 @@ class ReservationItSmokeTest(
         }
 
         private fun hold(client: RestClient, email: String, flightId: String, seat: String) {
-            client.post()
+            val (status, body) = client.post()
                 .uri("/api/v1/reservations/flights/$flightId")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.COOKIE, sessionCookie(client, email))
                 .body("""{"seats":[{"seat":"$seat","passengerName":"Ada Lovelace"}]}""")
-                .retrieve()
-                .toBodilessEntity()
+                .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
+
+            check(status in 200..299) { "hold $seat for $email failed: HTTP $status $body" }
         }
+
 
         private fun reservationIdsOf(client: RestClient, email: String): List<String> =
             client.get()
                 .uri("/api/v1/reservations")
                 .header(HttpHeaders.COOKIE, sessionCookie(client, email))
                 .retrieve()
-                .toEntity(String::class.java)
+                .toEntity<String>()
                 .body!!
                 .let { body -> REGEX_RESERVATION_ID.findAll(body).map { it.groupValues[1] }.toList() }
 

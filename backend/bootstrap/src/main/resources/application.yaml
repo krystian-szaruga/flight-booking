@@ -17,6 +17,15 @@ spring:
   flyway:
     enabled: true
 
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:false}
+
 app:
   auth:
     jwt-secret: ${JWT_SECRET}
@@ -27,9 +36,17 @@ app:
     login-attempts:
       max-failures: ${LOGIN_MAX_FAILURES:5}
       window-minutes: ${LOGIN_ATTEMPT_WINDOW_MINUTES:15}
+    verification:
+      code-ttl-minutes: ${VERIFICATION_CODE_TTL_MINUTES:15}
+      purge-enabled: ${PENDING_REGISTRATION_PURGE_ENABLED:true}
+      purge-cron: ${PENDING_REGISTRATION_PURGE_CRON:0 0 * * * *}
     revoked-token:
       purge-enabled: ${REVOKED_TOKEN_PURGE_ENABLED:true}
       purge-cron: ${REVOKED_TOKEN_PURGE_CRON:0 0 * * * *}
+  mail:
+    app-name: ${APP_NAME:flight-booking}
+    from: ${MAIL_FROM:no-reply@flight-booking.local}
+    enabled: ${MAIL_ENABLED:true}
 
 management:
   endpoints:

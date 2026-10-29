@@ -3,6 +3,7 @@ package dev.maxaure.flightbooking.security
 import dev.maxaure.flightbooking.application.port.out.AccessTokenIssuer
 import dev.maxaure.flightbooking.application.port.out.LoginAttemptLimiter
 import dev.maxaure.flightbooking.application.port.out.PasswordHasher
+import dev.maxaure.flightbooking.application.port.out.VerificationCodeGenerator
 import java.time.Clock
 import java.time.Duration
 import org.springframework.beans.factory.annotation.Value
@@ -30,4 +31,7 @@ internal class SecurityAdapterConfig {
         clock: Clock,
     ): LoginAttemptLimiter =
         InMemoryLoginAttemptLimiter(maxFailures, Duration.ofMinutes(windowMinutes), clock)
+
+    @Bean
+    fun verificationCodeGenerator(): VerificationCodeGenerator = SecureRandomVerificationCodeGenerator()
 }

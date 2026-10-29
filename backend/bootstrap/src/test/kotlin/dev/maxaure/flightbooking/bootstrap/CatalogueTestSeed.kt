@@ -11,6 +11,7 @@ internal class CatalogueTestSeed(private val jdbc: JdbcTemplate) {
     }
 
     fun clearUsers() {
+        jdbc.update("DELETE FROM pending_registration")
         jdbc.update("DELETE FROM users")
     }
 

@@ -58,9 +58,16 @@ data class User(
     val email: Email,
     val passwordHash: PasswordHash,
     val createdAt: Instant,
+    val emailVerifiedAt: Instant? = null,
 ) {
+    val isVerified: Boolean
+        get() = emailVerifiedAt != null
+
+    fun verify(now: Instant): User =
+        copy(emailVerifiedAt = emailVerifiedAt ?: now)
+
     companion object {
-        fun register(email: Email, passwordHash: PasswordHash, now: Instant, id: UserId = UserId.new()): User =
-            User(id = id, email = email, passwordHash = passwordHash, createdAt = now)
+        fun verified(email: Email, passwordHash: PasswordHash, now: Instant, id: UserId = UserId.new()): User =
+            User(id = id, email = email, passwordHash = passwordHash, createdAt = now, emailVerifiedAt = now)
     }
 }

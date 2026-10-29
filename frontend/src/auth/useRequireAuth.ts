@@ -9,7 +9,7 @@ export function useRequireAuth(): void {
   const location = useLocation()
 
   useEffect(() => {
-    if (user || loading) return
+    if (loading || user) return
     const target = `${location.pathname}${location.search}`
     navigate(`/auth?redirect=${encodeURIComponent(target)}`, { replace: true })
   }, [user, loading, navigate, location])

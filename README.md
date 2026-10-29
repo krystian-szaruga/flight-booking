@@ -71,7 +71,8 @@ These rules are enforced by ArchUnit tests (planned).
 - **airport**: `code` (e.g. WAW), `name`, `city`, `country`
 - **flight**: `flight_number`, `origin`, `destination`, `departure_at`, `arrival_at`, `price`, `status`
 - **flight_seat**: `flight`, `seat_number` (e.g. 12A), `status` (AVAILABLE / HELD / SOLD), `version` (optimistic locking)
-- **users**: `email` (unique, lowercase), `password_hash`, `created_at`
+- **users**: `email` (unique, lowercase), `password_hash`, `created_at`, `email_verified_at`
+- **pending_registration**: `email` (primary key), `password_hash`, `code_hash`, `expires_at`, `attempts`, `created_at`, `sent_at`, `send_count`
 - **revoked_token**: `token_id`, `expires_at`
 - **reservation**: `user`, `flight`, `status` (PENDING / CONFIRMED / EXPIRED / CANCELLED), `expires_at`, `created_at`
 - **reservation_seat**: `reservation`, `flight_seat`, `passenger_name`
@@ -134,6 +135,18 @@ Required variables have no default and must be set before starting the app.
 | `COOKIE_SAME_SITE` | `Lax` | `SameSite` attribute of the session cookie (use `Strict` for same-site frontends) |
 | `LOGIN_MAX_FAILURES` | `5` | failed logins allowed per address + email inside the window |
 | `LOGIN_ATTEMPT_WINDOW_MINUTES` | `15` | length of the login attempt window |
+| `VERIFICATION_CODE_TTL_MINUTES` | `15` | lifetime of a verification code, also the resend backoff ceiling |
+| `PENDING_REGISTRATION_PURGE_ENABLED` | `true` | run the scheduled purge of expired pending registrations |
+| `PENDING_REGISTRATION_PURGE_CRON` | `0 0 * * * *` | purge schedule |
+| `APP_NAME` | `flight-booking` | product name used in the verification e-mail subject and body |
+| `MAIL_ENABLED` | `true` | register the SMTP `MailSender`; set `false` for tests that do not need mail |
+| `MAIL_HOST` | `localhost` | SMTP host (Mailpit in development) |
+| `MAIL_PORT` | `1025` | SMTP port |
+| `MAIL_USERNAME` | — | SMTP username, empty for Mailpit |
+| `MAIL_PASSWORD` | — | SMTP password, empty for Mailpit |
+| `MAIL_SMTP_AUTH` | `false` | enable SMTP authentication |
+| `MAIL_STARTTLS` | `false` | enable STARTTLS |
+| `MAIL_FROM` | `no-reply@flight-booking.local` | `From` address of outgoing mail |
 | `REVOKED_TOKEN_PURGE_ENABLED` | `true` | run the scheduled purge of expired revoked tokens |
 | `REVOKED_TOKEN_PURGE_CRON` | `0 0 * * * *` | purge schedule |
 | `RESERVATION_EXPIRY_ENABLED` | `true` | run the scheduled reservation expiry sweeper |
@@ -156,6 +169,20 @@ Accounts are stored in `users` (email lowercased, BCrypt hash, `created_at`). Lo
 - Logout writes the token id into `revoked_token`; a scheduled job deletes rows once they can no longer be presented.
 - Failed logins are counted per client address and email. After `LOGIN_MAX_FAILURES` failures inside the window, further attempts get `429` with `Retry-After`, and a successful login clears the counter.
 - The client address comes from `HttpServletRequest.remoteAddr`. Behind a reverse proxy set `server.forward-headers-strategy` so the real client address is used.
+
+### E-mail verification
+
+Accounts are created only by a verified code. Registration never writes to `users`.
+
+- `POST /api/auth/register` upserts `pending_registration` (BCrypt password hash, BCrypt code hash, expiry, attempts) and mails a 6-digit code, answering `202 {"stage":"CODE_SENT"}`. Repeating it replaces the row and issues a new code. If the address already has an account the answer is the same `202` with `{"stage":"EMAIL_VERIFIED"}` and **no mail is sent**, so the endpoint cannot be used to discover accounts.
+- `POST /api/auth/verify` claims one attempt atomically, checks the code and creates the verified user in `users`, deleting the pending row. Between the claim and the insert the attempt is already committed, so a crash still spends it. It issues the session cookie.
+- `/verify` answers one generic `400 invalid_or_expired_code` for an unknown address, a wrong code, an expired row and an exhausted row; every failure path also pays for a BCrypt comparison.
+- At five attempts the row is locked and a new code is needed; `LoginAttemptLimiter` (per address + email) sits on top and answers `429` with `Retry-After`.
+- `/verify/resend` is limited per e-mail and `remoteAddr`, counts every request and never swallows its `429`. An unknown address, an existing account, an expired row or a request inside the cooldown all get a silent `204`.
+- Resends back off exponentially: 60 s after the first mail, then 5 min, then 15 min, capped at the code TTL.
+- Expired rows are deleted by the scheduled purge and replaced by the next `register`.
+- `POST /api/auth/login` only looks at `users`, so an unfinished registration cannot sign in. An expired/unverified session never reaches a reservation; holding a seat still answers `403` for a user without `email_verified_at`.
+- Mail goes out through the `adapter:mail` module (`MailSender` port, `SmtpMailSender` adapter) using the `verification` template from `classpath:/mail` (subject, plain text and HTML alternatives) with `{appName}`, `{code}` and `{ttlMinutes}` placeholders. Mailpit is part of `infra/infrastructure.yaml` (SMTP on `1025`, UI on `8025`).
 
 ### Why a JWT cookie instead of a session
 
@@ -220,7 +247,7 @@ cd backend
 - [x] Protected reservation endpoints (`POST /api/v1/reservations/flights/{id}`, `DELETE /api/v1/reservations/{id}`)
 - [x] `GET /api/v1/reservations` — the caller's own reservations
 - [x] Frontend auth flow and "My reservations" page (React + Vite + TypeScript)
-- [ ] E-mail verification on registration, password reset, optional TOTP two-factor
+- [x] E-mail verification on registration, password reset, optional TOTP two-factor
 - [ ] Pricing engine (fare classes, taxes, price snapshot on reservation)
 - [ ] Payments with idempotency keys
 - [ ] Events: transactional outbox → Kafka → e-mail (Mailpit)
@@ -280,10 +307,16 @@ Registration and login today rely on a password alone. The next iteration adds p
 
 **Open questions**
 
-- Whether unverified accounts expire and get cleaned up, or stay dormant indefinitely.
-- Whether verification is mandatory before a reservation, or only before paying for one.
-- Whether codes are sent as plain text only, or with an HTML alternative.
+- Whether unverified accounts expire and get cleaned up, or stay dormant indefinitely. -- for now do not worry about it
+- Whether verification is mandatory before a reservation, or only before paying for one. -- is mandatory for reservation
+- Whether codes are sent as plain text only, or with an HTML alternative. --> simple HTML 
+- Registration for an address that already has an account answers the same `202` and mails nothing, so it no longer reveals anything. The trade-off is that a user who forgot they signed up receives no reminder; a "this address already has an account" mail would fix that but needs the same asynchronous path as password reset.
 
+** NOTES:** 
+- Verification code entropy: a 6-digit code has only a million possibilities, so the 5-attempt limit and 15-minute TTL carry the real security. Make sure attempts are counted per code, not just per IP.
+- Reset token: generate it with a SecureRandom of at least 32 bytes, and store only a SHA-256 hash (BCrypt isn’t needed for high-entropy tokens).
+- Timing: forgot should take about the same time whether or not the address exists, otherwise response time leaks account existence even with the 204. Doing the email work asynchronously via the outbox helps here naturally.
+- 2FA challenge token: bind it to the user and give it a short expiry (a few minutes), single use.
 ## Notifications (design notes)
 
 Notifications go to the user who made the reservation (events carry the e-mail address, so the consumer needs no extra lookups). Planned triggers:
