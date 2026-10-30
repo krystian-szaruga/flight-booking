@@ -14,6 +14,7 @@ interface HoldPanelProps {
   onCancel: (reservationId: string) => void
   onCancelSeats: (reservationId: string, seats: string[]) => void
   onReleaseSeat: (seat: string) => void
+  onPay: (reservationId: string, cardNumber: string) => void
 }
 
 export function HoldPanel({
@@ -25,6 +26,7 @@ export function HoldPanel({
   onCancel,
   onCancelSeats,
   onReleaseSeat,
+  onPay,
 }: HoldPanelProps) {
   const { user } = useAuth()
   const [drafts, setDrafts] = useState<Record<string, PassengerDraft>>({})
@@ -81,6 +83,7 @@ export function HoldPanel({
                 busy={busy}
                 onCancel={onCancel}
                 onCancelSeats={onCancelSeats}
+                onPay={onPay}
               />
             ))}
           </ul>
@@ -93,7 +96,7 @@ export function HoldPanel({
           <p className="muted">
             Select {activeHolds.length > 0 ? 'more ' : ''}seats on the map to hold them.
           </p>
-          {error && <p className="error">{error}</p>}
+          {activeHolds.length === 0 && error && <p className="error">{error}</p>}
         </>
       ) : (
         <p className="muted">

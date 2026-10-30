@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":adapter:security"))
     implementation(project(":adapter:mail"))
     implementation(project(":adapter:payment"))
+    implementation(project(":adapter:currency"))
 
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.bundles.spring.runtime)

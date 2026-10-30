@@ -1,6 +1,7 @@
 package dev.maxaure.flightbooking.application.usecase
 
 import dev.maxaure.flightbooking.application.port.`in`.SearchFlights
+import dev.maxaure.flightbooking.application.port.out.CurrencyConverter
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
 import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.model.pricing.Cabin
@@ -18,6 +19,7 @@ import java.util.UUID
 
 class FlightSearchUseCase(
     private val search: FlightSearch,
+    private val converter: CurrencyConverter,
     private val clock: Clock,
 ) : SearchFlights {
 
@@ -28,6 +30,7 @@ class FlightSearchUseCase(
         to: LocalDate,
         zone: ZoneId,
         cabin: String?,
+        currency: String?,
     ): List<FlightMatch> {
         val query = SearchFlightsQuery(
             origin = IataCode.of(origin),
@@ -40,15 +43,19 @@ class FlightSearchUseCase(
         if (query.isDepartedBy(clock.instant())) {
             throw InvalidDomainValueException("Cannot search flights that already departed, asked up to $to")
         }
-        return query.matchesOf(search.search(query))
+        return query.matchesOf(search.search(query)).map { match ->
+            match.copy(fares = match.fares.map { it.copy(price = converter.convert(it.price, currency)) })
+        }
     }
 
-    override fun deals(limit: Int): List<FlightDeal> {
+    override fun deals(limit: Int, currency: String?): List<FlightDeal> {
         val query = DealsQuery(from = clock.instant(), limit = limit)
-        return query.offersOf(search.deals(query))
+        return query.offersOf(
+            search.deals(query).map { it.copy(price = converter.convert(it.price, currency)) },
+        )
     }
 
-    override fun seatMap(flightId: UUID): SeatMap? =
+    override fun seatMap(flightId: UUID, currency: String?): SeatMap? =
         search.seatMap(flightId)?.let { source ->
             SeatMapAssembler.assemble(
                 flightId = source.flightId,
@@ -59,7 +66,7 @@ class FlightSearchUseCase(
                 departureAt = source.departureAt,
                 aircraft = source.aircraft,
                 status = source.status,
-                fares = source.fares,
+                fares = source.fares.map { it.copy(price = converter.convert(it.price, currency)) },
                 seats = source.seats,
             )
         }

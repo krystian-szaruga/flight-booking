@@ -70,6 +70,20 @@ class PaymentTest(
         reservationStatus(jdbc, reservationId) shouldBe "PENDING"
         seatStatus(jdbc, "12A") shouldBe "HELD"
         paymentCount(jdbc) shouldBe 1
+        listReservations(anna, "anna@example.com") shouldContain "\"paid\":null"
+    }
+
+    "when a paid reservation is listed then it reports both the price and the amount paid" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val reservationId = hold(anna, "anna@example.com", "12A")
+        pay(anna, "anna@example.com", reservationId, "key-5", APPROVED_CARD).first shouldBeExactly 201
+
+        val listed = listReservations(anna, "anna@example.com")
+
+        listed shouldContain "\"price\":{\"amount\":399"
+        listed shouldContain "\"paid\":{\"amount\":399"
+        listed shouldContain "\"currency\":\"PLN\""
+        listed shouldContain "\"cardLast4\":\"4242\""
     }
 
     "when the same idempotency key is retried then the same payment comes back and nothing is charged twice" {
@@ -194,6 +208,14 @@ class PaymentTest(
                 .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
 
         private fun paymentId(body: String): String = PAYMENT_ID.find(body)!!.groupValues[1]
+
+        private fun listReservations(client: RestClient, email: String): String =
+            client.get()
+                .uri("/api/v1/reservations")
+                .header(HttpHeaders.COOKIE, sessionCookie(client, email))
+                .retrieve()
+                .toEntity<String>()
+                .body!!
 
         private val RESERVATION_ID = """"reservationId"\s*:\s*"([0-9a-fA-F-]{36})"""".toRegex()
         private val PAYMENT_ID = """"paymentId"\s*:\s*"([0-9a-fA-F-]{36})"""".toRegex()

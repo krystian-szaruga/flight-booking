@@ -66,7 +66,7 @@ class FlightSearchUseCaseTest {
     )
 
     private fun useCase(vararg matches: FlightMatch): FlightSearchUseCase =
-        FlightSearchUseCase(FakeFlightSearch(matches.toList()), clock)
+        FlightSearchUseCase(FakeFlightSearch(matches.toList()), NoConversion, clock)
 
     @Test
     fun `when a date is searched then matches come back ordered by departure then flight number`() {
@@ -83,7 +83,7 @@ class FlightSearchUseCaseTest {
     fun `when the local day is queried then the window covers midnight to midnight in that zone`() {
         val search = FakeFlightSearch(emptyList())
 
-        FlightSearchUseCase(search, clock).search("WAW", "LIS", date, date, warsaw)
+        FlightSearchUseCase(search, NoConversion, clock).search("WAW", "LIS", date, date, warsaw)
 
         val query = search.queries.single()
         assertEquals(Instant.parse("2026-10-31T23:00:00Z"), query.from)
@@ -103,7 +103,7 @@ class FlightSearchUseCaseTest {
     fun `when a window is searched then the query spans the first day to the end of the last day`() {
         val search = FakeFlightSearch(emptyList())
 
-        FlightSearchUseCase(search, clock).search("WAW", "LIS", date, date.plusDays(14), warsaw)
+        FlightSearchUseCase(search, NoConversion, clock).search("WAW", "LIS", date, date.plusDays(14), warsaw)
 
         val query = search.queries.single()
         assertEquals(Instant.parse("2026-10-31T23:00:00Z"), query.from)
@@ -129,7 +129,7 @@ class FlightSearchUseCaseTest {
         val today = LocalDate.parse("2026-10-27")
         val search = FakeFlightSearch(listOf(match("LO100", Instant.parse("2026-10-27T18:00:00Z"))))
 
-        val results = FlightSearchUseCase(search, clock).search("WAW", "LIS", today, today, warsaw)
+        val results = FlightSearchUseCase(search, NoConversion, clock).search("WAW", "LIS", today, today, warsaw)
 
         assertEquals(1, results.size)
     }
@@ -200,7 +200,7 @@ class FlightSearchUseCaseTest {
             ),
         )
 
-        val map = FlightSearchUseCase(search, clock).seatMap(flightId)!!
+        val map = FlightSearchUseCase(search, NoConversion, clock).seatMap(flightId)!!
 
         assertEquals(listOf("1A", "2A", "10C"), map.seats.map { it.seatNumber.value })
         assertEquals(BigDecimal("1000.00"), map.seats.first().price.amount)
@@ -223,6 +223,7 @@ class FlightSearchUseCaseTest {
         val departed = deal("LO400", Instant.parse("2026-10-20T08:00:00Z"), "49.00", seats = 5)
         val useCase = FlightSearchUseCase(
             FakeFlightSearch(emptyList(), deals = listOf(pricier, soldOut, cheap, departed)),
+            NoConversion,
             clock,
         )
 
@@ -234,7 +235,7 @@ class FlightSearchUseCaseTest {
     @Test
     fun `when the cheapest flights are far in the future then they are still returned`() {
         val distant = deal("LO900", Instant.parse("2027-06-01T08:00:00Z"), "99.00", seats = 3)
-        val useCase = FlightSearchUseCase(FakeFlightSearch(emptyList(), deals = listOf(distant)), clock)
+        val useCase = FlightSearchUseCase(FakeFlightSearch(emptyList(), deals = listOf(distant)), NoConversion, clock)
 
         val deals = useCase.deals()
 
@@ -245,7 +246,7 @@ class FlightSearchUseCaseTest {
     fun `when deals are requested then the window starts at now with no upper bound`() {
         val search = FakeFlightSearch(emptyList())
 
-        FlightSearchUseCase(search, clock).deals(limit = 3)
+        FlightSearchUseCase(search, NoConversion, clock).deals(limit = 3)
 
         val query = search.dealQueries.single()
         assertEquals(now, query.from)

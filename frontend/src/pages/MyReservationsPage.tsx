@@ -5,9 +5,11 @@ import type { ReservationResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { isUnauthorized, useRequireAuth } from '../auth/useRequireAuth'
 import { ReservationRow } from '../components/ReservationRow'
+import { useCurrency } from '../currency/CurrencyContext'
 
 export function MyReservationsPage() {
   const { user, expireSession } = useAuth()
+  const { currency } = useCurrency()
   useRequireAuth()
   const navigate = useNavigate()
 
@@ -23,7 +25,7 @@ export function MyReservationsPage() {
   const load = useCallback(
     (signal?: AbortSignal) => {
       if (!user) return
-      getMyReservations(signal)
+      getMyReservations(currency, signal)
         .then(setReservations)
         .catch((cause: unknown) => {
           if (cause instanceof DOMException && cause.name === 'AbortError') return
@@ -34,7 +36,7 @@ export function MyReservationsPage() {
           setError(cause instanceof ApiError ? cause.message : 'Could not load your reservations.')
         })
     },
-    [user],
+    [user, currency],
   )
 
   useEffect(() => {
@@ -49,8 +51,8 @@ export function MyReservationsPage() {
     setError(null)
     try {
       const cancelled = seats?.length
-        ? await cancelReservationSeats(reservationId, seats)
-        : await cancelReservation(reservationId)
+        ? await cancelReservationSeats(reservationId, seats, currency)
+        : await cancelReservation(reservationId, currency)
       setReservations((current) =>
         current
           ? current.map((reservation) =>

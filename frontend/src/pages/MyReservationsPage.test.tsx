@@ -71,6 +71,31 @@ describe('my reservations', () => {
     expect(backend.callsTo(/DELETE/)).toHaveLength(0)
   })
 
+  it('when a paid reservation is listed then its row shows the amount that was paid', async () => {
+    startBackend([
+      SIGNED_IN,
+      {
+        path: '/api/v1/reservations',
+        body: [
+          reservation({
+            status: 'CONFIRMED',
+            expiresAt: null,
+            paid: {
+              amount: 120,
+              currency: 'EUR',
+              cardLast4: '4242',
+              paidAt: '2026-01-01T10:00:00Z',
+            },
+          }),
+        ],
+      },
+    ])
+    renderApp('/reservations')
+
+    expect(await screen.findByText('120.00 EUR')).toBeInTheDocument()
+    expect(screen.getByText(/by card •••• 4242/)).toBeInTheDocument()
+  })
+
   it('when a guest opens the reservations page then they are sent to sign in', async () => {
     startBackend([{ path: '/api/auth/me', body: null }])
     renderApp('/reservations')

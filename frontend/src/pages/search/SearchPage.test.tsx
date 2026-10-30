@@ -19,7 +19,8 @@ function localToday(): string {
 }
 
 async function pickBothCities(user: ReturnType<typeof userEvent.setup>) {
-  const [from, to] = screen.getAllByRole('combobox')
+  const from = screen.getByLabelText('From')
+  const to = screen.getByLabelText('To')
   await user.type(from, 'Warsaw')
   await user.click(await screen.findByRole('option', { name: /Warsaw/ }))
   await user.type(to, 'Lisbon')
@@ -98,7 +99,8 @@ describe('flight search', () => {
     const user = userEvent.setup()
     renderApp('/search')
 
-    const [from, to] = screen.getAllByRole('combobox')
+    const from = screen.getByLabelText('From')
+    const to = screen.getByLabelText('To')
     await user.type(from, 'Warsaw')
     await user.click(await screen.findByRole('option', { name: /Warsaw/ }))
     await user.type(to, 'Warsaw')

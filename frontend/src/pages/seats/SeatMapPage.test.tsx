@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { reservation, seatMap, VERIFIED_USER } from '../../test/fixtures'
+import { reservation, payment, seatMap, VERIFIED_USER } from '../../test/fixtures'
 import '../../test/isolate'
 import { renderApp } from '../../test/renderApp'
 import { problem, startBackend } from '../../test/server'
@@ -135,8 +135,71 @@ describe('holding seats', () => {
   })
 })
 
-describe('guarding the seat map', () => {
-  it('when the traveller has not verified their email then the seat map is refused and they are sent to sign in', async () => {
+describe('paying for a hold', () => {
+  async function holdSeat() {
+    const user = userEvent.setup()
+    renderApp('/flights/LO26/seats')
+    await user.click(await screen.findByRole('gridcell', { name: '3A, economy, available' }))
+    await namePassenger(user, '3A')
+    await user.click(screen.getByRole('button', { name: 'Hold seats' }))
+    await screen.findByRole('heading', { name: 'Seat on hold' })
+    return user
+  }
+
+  it('when the traveller pays with the approving card then the payment is sent and the reservation is confirmed', async () => {
+    const backend = startBackend([
+      SIGNED_IN,
+      seatMapRoute(),
+      { method: 'POST', path: '/api/v1/reservations/flights/LO26', body: reservation(), once: true },
+      { method: 'POST', path: '/api/v1/reservations/res-1/payment', body: payment(), once: true },
+      seatMapRoute(),
+    ])
+    const user = await holdSeat()
+
+    expect(screen.getByText(/^120\.00 EUR$/, { selector: '.payment-total' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Pay now' }))
+
+    expect(backend.lastCall(/POST \/api\/v1\/reservations\/res-1\/payment/).body).toEqual({
+      idempotencyKey: expect.any(String),
+      cardNumber: '4242424242424242',
+      cardHolder: 'Ada Lovelace',
+      currency: 'PLN',
+    })
+    expect(await screen.findByText('Paid and confirmed.')).toBeInTheDocument()
+    expect(screen.getByText(/Paid 120\.00 EUR · card •••• 4242/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Pay now' })).not.toBeInTheDocument()
+  })
+
+  it('when the card is declined then the reason is shown and the hold stays payable', async () => {
+    const backend = startBackend([
+      SIGNED_IN,
+      seatMapRoute(),
+      { method: 'POST', path: '/api/v1/reservations/flights/LO26', body: reservation(), once: true },
+      {
+        method: 'POST',
+        path: '/api/v1/reservations/res-1/payment',
+        status: 402,
+        body: payment({ status: 'DECLINED', cardLast4: '0002', declineReason: 'Card declined by issuer' }),
+        once: true,
+      },
+    ])
+    const user = await holdSeat()
+
+    await user.selectOptions(screen.getByLabelText('Test card'), '4000000000000002')
+    await user.click(screen.getByRole('button', { name: 'Pay now' }))
+
+    expect(backend.lastCall(/POST \/api\/v1\/reservations\/res-1\/payment/).body).toEqual({
+      idempotencyKey: expect.any(String),
+      cardNumber: '4000000000000002',
+      cardHolder: 'Ada Lovelace',
+      currency: 'PLN',
+    })
+    expect(await screen.findByText('Card declined by issuer')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pay now' })).toBeInTheDocument()
+  })
+})
+
+describe('guarding the seat map', () => {  it('when the traveller has not verified their email then the seat map is refused and they are sent to sign in', async () => {
     const backend = startBackend([
       { path: '/api/auth/me', body: { ...VERIFIED_USER, emailVerifiedAt: null } },
       seatMapRoute(),

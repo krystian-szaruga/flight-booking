@@ -143,3 +143,11 @@
   text-transform: uppercase;
   color: var(--accent);
 }
+
+.currency-selector {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: inherit;
+}

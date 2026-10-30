@@ -4,20 +4,35 @@ import { useConfirm } from './confirm/ConfirmProvider'
 import { HoldSeatList } from './HoldSeatList'
 import { formatRemaining, useRemainingSeconds } from './useRemainingSeconds'
 
+const money = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
+const TEST_CARDS = [
+  { number: '4242424242424242', label: 'Test card · approves' },
+  { number: '4000000000000002', label: 'Test card · declines' },
+  { number: '4000000000009995', label: 'Test card · no funds' },
+]
+
 export function SeatHold({
   hold,
   busy,
   onCancel,
   onCancelSeats,
+  onPay,
 }: {
   hold: ReservationResponse
   busy: boolean
   onCancel: (reservationId: string) => void
   onCancelSeats: (reservationId: string, seats: string[]) => void
+  onPay: (reservationId: string, cardNumber: string) => void
 }) {
   const seconds = useRemainingSeconds(hold.expiresAt ?? null)
-  const expired = seconds === 0
+  const confirmed = hold.status === 'CONFIRMED'
+  const expired = !confirmed && seconds === 0
   const [picked, setPicked] = useState<string[]>([])
+  const [card, setCard] = useState(TEST_CARDS[0].number)
   const confirm = useConfirm()
 
   const toggle = (seat: string) =>
@@ -50,11 +65,18 @@ export function SeatHold({
       <div className="passenger-row-head">
         <strong>{hold.seats.map((seat) => seat.seat).join(', ')}</strong>
         <span className="muted">
-          {expired
-            ? 'Expired'
-            : `Pay within ${formatRemaining(seconds ?? 0)} or the seats are released.`}
+          {confirmed
+            ? 'Paid and confirmed.'
+            : expired
+              ? 'Expired'
+              : `Pay within ${formatRemaining(seconds ?? 0)} or the seats are released.`}
         </span>
       </div>
+      {confirmed && hold.paid && (
+        <p className="muted">
+          Paid {money.format(hold.paid.amount)} {hold.paid.currency} · card •••• {hold.paid.cardLast4}
+        </p>
+      )}
       <HoldSeatList
         seats={hold.seats}
         picked={picked}
@@ -73,8 +95,40 @@ export function SeatHold({
               ? 'Release selected'
               : `Release selected (${picked.length})`}
           </button>
-          <button type="button" className="link-button" disabled={busy} onClick={cancelAll}>
-            Release all
+          {!confirmed && (
+            <button type="button" className="link-button" disabled={busy} onClick={cancelAll}>
+              Release all
+            </button>
+          )}
+        </div>
+      )}
+      {hold.status === 'PENDING' && !expired && (
+        <div className="payment-box">
+          <label htmlFor={`card-${hold.reservationId}`}>Test card</label>
+          <select
+            id={`card-${hold.reservationId}`}
+            value={card}
+            disabled={busy}
+            onChange={(event) => setCard(event.target.value)}
+          >
+            {TEST_CARDS.map((option) => (
+              <option key={option.number} value={option.number}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {hold.price && (
+            <strong className="payment-total">
+              {money.format(hold.price.amount)} {hold.price.currency}
+            </strong>
+          )}
+          <button
+            type="button"
+            className="button"
+            disabled={busy}
+            onClick={() => onPay(hold.reservationId, card)}
+          >
+            Pay now
           </button>
         </div>
       )}

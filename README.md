@@ -218,6 +218,12 @@ Local-first, cloud-ready:
 
 `POST /api/v1/reservations/{id}/payment` takes `idempotencyKey`, `cardNumber` and `cardHolder`, and confirms the reservation on approval. Replaying a key returns the stored payment instead of charging again; paying a confirmed or expired hold answers `409`.
 
+## Currency
+
+`GET /api/v1/currencies` returns the default and supported codes. Prices are converted server-side when a request carries `?currency=XXX` (`/flights`, `/flights/deals`, `/flights/{id}/seats` and the reservation endpoints), and payments are charged in the selected currency.
+
+Rates live in `app.currency` (`base`, `default`, `rates`) and are static demo values — no FX provider is called. `CurrencyConverter` is the port; to plug a real FX API, add one adapter bean and leave the use cases untouched. The header selector persists the choice in `localStorage`.
+
 ## Testing with Podman
 
 Testcontainers expects a Docker-compatible socket. With Podman:

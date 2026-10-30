@@ -1,8 +1,11 @@
 import type {
   AirportSummary,
+  CurrencyOptionsResponse,
   DealResponse,
   FlightSummaryResponse,
   HoldSeat,
+  PayReservationRequest,
+  PaymentResponse,
   ReservationResponse,
   SearchFlightsParams,
   SeatMapResponse,
@@ -67,6 +70,15 @@ async function send<T>(
   return (await response.json()) as T
 }
 
+function withCurrency(path: string, currency?: string): string {
+  if (!currency) return path
+  return `${path}${path.includes('?') ? '&' : '?'}currency=${encodeURIComponent(currency)}`
+}
+
+export function getCurrencyOptions(signal?: AbortSignal): Promise<CurrencyOptionsResponse> {
+  return request<CurrencyOptionsResponse>('/api/v1/currencies', signal)
+}
+
 export function searchFlights(
   params: SearchFlightsParams,
   signal?: AbortSignal,
@@ -79,15 +91,27 @@ export function searchFlights(
   if (params.to && params.to !== params.from) query.set('to', params.to)
   if (params.cabin) query.set('cabin', params.cabin)
   if (params.zone) query.set('zone', params.zone)
+  if (params.currency) query.set('currency', params.currency)
   return request<FlightSummaryResponse[]>(`/api/v1/flights?${query.toString()}`, signal)
 }
 
-export function getSeatMap(flightId: string, signal?: AbortSignal): Promise<SeatMapResponse> {
-  return request<SeatMapResponse>(`/api/v1/flights/${encodeURIComponent(flightId)}/seats`, signal)
+export function getSeatMap(
+  flightId: string,
+  currency?: string,
+  signal?: AbortSignal,
+): Promise<SeatMapResponse> {
+  return request<SeatMapResponse>(
+    withCurrency(`/api/v1/flights/${encodeURIComponent(flightId)}/seats`, currency),
+    signal,
+  )
 }
 
-export function getDeals(limit = 6, signal?: AbortSignal): Promise<DealResponse[]> {
-  return request<DealResponse[]>(`/api/v1/flights/deals?limit=${limit}`, signal)
+export function getDeals(
+  limit = 6,
+  currency?: string,
+  signal?: AbortSignal,
+): Promise<DealResponse[]> {
+  return request<DealResponse[]>(withCurrency(`/api/v1/flights/deals?limit=${limit}`, currency), signal)
 }
 
 export function searchAirports(query: string, signal?: AbortSignal): Promise<AirportSummary[]> {
@@ -97,20 +121,25 @@ export function searchAirports(query: string, signal?: AbortSignal): Promise<Air
 export function holdSeats(
   flightId: string,
   seats: HoldSeat[],
+  currency?: string,
   signal?: AbortSignal,
 ): Promise<ReservationResponse> {
   return send<ReservationResponse>(
     'POST',
-    `/api/v1/reservations/flights/${encodeURIComponent(flightId)}`,
+    withCurrency(`/api/v1/reservations/flights/${encodeURIComponent(flightId)}`, currency),
     { seats },
     signal,
   )
 }
 
-export function cancelReservation(reservationId: string, signal?: AbortSignal): Promise<ReservationResponse> {
+export function cancelReservation(
+  reservationId: string,
+  currency?: string,
+  signal?: AbortSignal,
+): Promise<ReservationResponse> {
   return send<ReservationResponse>(
     'DELETE',
-    `/api/v1/reservations/${encodeURIComponent(reservationId)}`,
+    withCurrency(`/api/v1/reservations/${encodeURIComponent(reservationId)}`, currency),
     undefined,
     signal,
   )
@@ -119,16 +148,35 @@ export function cancelReservation(reservationId: string, signal?: AbortSignal): 
 export function cancelReservationSeats(
   reservationId: string,
   seats: string[],
+  currency?: string,
   signal?: AbortSignal,
 ): Promise<ReservationResponse> {
   return send<ReservationResponse>(
     'DELETE',
-    `/api/v1/reservations/${encodeURIComponent(reservationId)}/seats`,
+    withCurrency(`/api/v1/reservations/${encodeURIComponent(reservationId)}/seats`, currency),
     { seats },
     signal,
   )
 }
 
-export function getMyReservations(signal?: AbortSignal): Promise<ReservationResponse[]> {
-  return request<ReservationResponse[]>('/api/v1/reservations', signal)
+export function getMyReservations(
+  currency?: string,
+  signal?: AbortSignal,
+): Promise<ReservationResponse[]> {
+  return request<ReservationResponse[]>(withCurrency('/api/v1/reservations', currency), signal)
+}
+
+export async function payReservation(
+  reservationId: string,
+  payment: PayReservationRequest,
+): Promise<PaymentResponse> {
+  const response = await fetch(`/api/v1/reservations/${encodeURIComponent(reservationId)}/payment`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(payment),
+  })
+  if (response.status === 402) return (await response.json()) as PaymentResponse
+  if (!response.ok) await fail(response)
+  return (await response.json()) as PaymentResponse
 }

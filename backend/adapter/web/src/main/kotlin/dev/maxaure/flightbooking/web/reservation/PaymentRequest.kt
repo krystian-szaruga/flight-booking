@@ -12,10 +12,13 @@ internal data class PayReservationRequest(
 
     @field:NotBlank(message = "A card holder is required")
     val cardHolder: String,
+
+    val currency: String? = null,
 ) {
     fun toRequest(): PaymentRequest = PaymentRequest(
         idempotencyKey = idempotencyKey,
         cardNumber = cardNumber,
         cardHolder = cardHolder,
+        currency = currency,
     )
 }

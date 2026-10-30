@@ -8,6 +8,7 @@ data class PaymentRequest(
     val idempotencyKey: String,
     val cardNumber: String,
     val cardHolder: String,
+    val currency: String? = null,
 )
 
 interface PayReservation {

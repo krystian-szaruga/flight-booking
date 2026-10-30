@@ -1,6 +1,7 @@
 import type {
   AirportSummary,
   FlightSummaryResponse,
+  PaymentResponse,
   ReservationResponse,
   SeatMapResponse,
   SeatResponse,
@@ -87,7 +88,23 @@ export function reservation(overrides: Partial<ReservationResponse> = {}): Reser
     flightId: 'LO26',
     status: 'PENDING',
     expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+    price: { amount: 120, currency: 'EUR' },
+    paid: null,
     seats: [{ seat: '3A', firstName: 'Grace', lastName: 'Hopper' }],
+    ...overrides,
+  }
+}
+
+export function payment(overrides: Partial<PaymentResponse> = {}): PaymentResponse {
+  return {
+    paymentId: 'pay-1',
+    reservationId: 'res-1',
+    status: 'APPROVED',
+    amount: 120,
+    currency: 'EUR',
+    cardLast4: '4242',
+    declineReason: null,
+    createdAt: '2026-01-01T10:00:00Z',
     ...overrides,
   }
 }

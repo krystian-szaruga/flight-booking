@@ -2,7 +2,9 @@ package dev.maxaure.flightbooking.bootstrap
 
 import dev.maxaure.flightbooking.application.port.`in`.IngestCatalogue
 import dev.maxaure.flightbooking.application.port.`in`.AuthenticateUser
+import dev.maxaure.flightbooking.application.port.`in`.DescribeReservation
 import dev.maxaure.flightbooking.application.port.`in`.GetCurrentUser
+import dev.maxaure.flightbooking.application.port.`in`.ListCurrencies
 import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
 import dev.maxaure.flightbooking.application.port.`in`.PayReservation
 import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
@@ -18,6 +20,7 @@ import dev.maxaure.flightbooking.application.port.out.PendingRegistrationStore
 import dev.maxaure.flightbooking.application.port.out.VerificationCodeGenerator
 import dev.maxaure.flightbooking.application.port.out.AirportDirectory
 import dev.maxaure.flightbooking.application.port.out.AirportRepository
+import dev.maxaure.flightbooking.application.port.out.CurrencyConverter
 import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
@@ -31,6 +34,7 @@ import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.application.port.out.RevokedTokenRepository
 import dev.maxaure.flightbooking.application.port.out.PasswordHasher
 import dev.maxaure.flightbooking.application.usecase.CatalogueIngestionUseCase
+import dev.maxaure.flightbooking.application.usecase.DescribeReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.FlightSearchUseCase
 import dev.maxaure.flightbooking.application.usecase.user.RegisterUserUseCase
 import dev.maxaure.flightbooking.application.usecase.user.ResendVerificationUseCase
@@ -40,6 +44,7 @@ import dev.maxaure.flightbooking.application.usecase.user.AuthenticateUserUseCas
 import dev.maxaure.flightbooking.application.usecase.user.GetCurrentUserUseCase
 import dev.maxaure.flightbooking.application.usecase.user.UpdateProfileUseCase
 import dev.maxaure.flightbooking.application.usecase.ListMyReservationsUseCase
+import dev.maxaure.flightbooking.application.usecase.ListCurrenciesUseCase
 import dev.maxaure.flightbooking.application.usecase.PayReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.RevokeTokenUseCase
 import dev.maxaure.flightbooking.application.usecase.ReservationUseCase
@@ -63,8 +68,8 @@ internal class UseCaseConfig {
     ): IngestCatalogue = CatalogueIngestionUseCase(airports, flights, runs, records, clock)
 
     @Bean
-    fun searchFlights(search: FlightSearch, clock: Clock): SearchFlights =
-        FlightSearchUseCase(search, clock)
+    fun searchFlights(search: FlightSearch, converter: CurrencyConverter, clock: Clock): SearchFlights =
+        FlightSearchUseCase(search, converter, clock)
 
     @Bean
     fun searchAirports(directory: AirportDirectory): SearchAirports =
@@ -144,6 +149,17 @@ internal class UseCaseConfig {
         payments: PaymentRepository,
         pricer: ReservationPricer,
         gateway: PaymentGateway,
+        converter: CurrencyConverter,
         clock: Clock,
-    ): PayReservation = PayReservationUseCase(reservations, payments, pricer, gateway, clock)
+    ): PayReservation = PayReservationUseCase(reservations, payments, pricer, gateway, converter, clock)
+
+    @Bean
+    fun describeReservation(
+        pricer: ReservationPricer,
+        payments: PaymentRepository,
+        converter: CurrencyConverter,
+    ): DescribeReservation = DescribeReservationUseCase(pricer, payments, converter)
+
+    @Bean
+    fun listCurrencies(converter: CurrencyConverter): ListCurrencies = ListCurrenciesUseCase(converter)
 }

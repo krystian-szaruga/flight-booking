@@ -35,6 +35,7 @@ internal class SecurityConfig {
                 ).permitAll()
                 it.requestMatchers(HttpMethod.GET, "/api/v1/flights/**").permitAll()
                 it.requestMatchers(HttpMethod.GET, "/api/v1/airports").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/api/v1/currencies").permitAll()
                 it.anyRequest().authenticated()
             }
             .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }

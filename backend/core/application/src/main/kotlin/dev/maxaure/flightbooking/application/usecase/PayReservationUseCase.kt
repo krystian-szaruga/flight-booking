@@ -3,6 +3,7 @@ package dev.maxaure.flightbooking.application.usecase
 import dev.maxaure.flightbooking.application.port.`in`.PayReservation
 import dev.maxaure.flightbooking.application.port.`in`.PaymentRequest
 import dev.maxaure.flightbooking.application.port.out.CardDetails
+import dev.maxaure.flightbooking.application.port.out.CurrencyConverter
 import dev.maxaure.flightbooking.application.port.out.PaymentCommand
 import dev.maxaure.flightbooking.application.port.out.PaymentGateway
 import dev.maxaure.flightbooking.application.port.out.PaymentRepository
@@ -23,6 +24,7 @@ class PayReservationUseCase(
     private val payments: PaymentRepository,
     private val pricer: ReservationPricer,
     private val gateway: PaymentGateway,
+    private val converter: CurrencyConverter,
     private val clock: Clock,
 ) : PayReservation {
 
@@ -34,6 +36,7 @@ class PayReservationUseCase(
         val now = clock.instant()
         reservation.pay(now)
         val amount = pricer.priceOf(reservationId)
+            ?.let { converter.convert(it, request.currency) }
             ?: throw NotFoundException("Reservation $reservationId has no priced seats")
         val command = PaymentCommand(
             idempotencyKey = request.idempotencyKey,

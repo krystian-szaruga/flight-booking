@@ -1,6 +1,7 @@
 package dev.maxaure.flightbooking.application.usecase
 
 import dev.maxaure.flightbooking.application.port.`in`.PaymentRequest
+import dev.maxaure.flightbooking.application.port.out.CurrencyConverter
 import dev.maxaure.flightbooking.application.port.out.HoldOutcome
 import dev.maxaure.flightbooking.application.port.out.PaymentCommand
 import dev.maxaure.flightbooking.application.port.out.PaymentGateway
@@ -19,6 +20,7 @@ import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
 import dev.maxaure.flightbooking.domain.model.user.UserId
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -48,7 +50,17 @@ class PayReservationUseCaseTest {
         override fun priceOf(reservationId: UUID): Price? = price
     }
     private val gateway = StubPaymentGateway(PaymentResult.Approved("auth-1"))
-    private val useCase = PayReservationUseCase(reservations, payments, pricer, gateway, clock)
+    private val useCase = PayReservationUseCase(reservations, payments, pricer, gateway, NoConversion, clock)
+
+    private val eurConverter = object : CurrencyConverter {
+        override val defaultCurrency: String = "PLN"
+        override val supportedCurrencies: List<String> = listOf("PLN", "EUR")
+
+        override fun convert(price: Price, target: String?): Price =
+            if (target == null) price
+            else Price(price.amount.multiply(BigDecimal("0.23")).setScale(2, RoundingMode.HALF_UP), target)
+    }
+    private val eurUseCase = PayReservationUseCase(reservations, payments, pricer, gateway, eurConverter, clock)
 
     private fun hold(userId: UserId = this.userId, seat: String = "12A"): Reservation =
         reservations.holdSeats(
@@ -98,6 +110,16 @@ class PayReservationUseCaseTest {
 
         assertEquals(first.id, replay.id)
         assertEquals(1, gateway.calls.size)
+    }
+
+    @Test
+    fun `when a target currency is chosen then the gateway is charged the converted amount`() {
+        val reservation = hold()
+
+        val payment = eurUseCase.pay(userId, reservation.id, request().copy(currency = "EUR"))
+
+        assertEquals(Price(BigDecimal("57.50"), "EUR"), gateway.calls.single().amount)
+        assertEquals(Price(BigDecimal("57.50"), "EUR"), payment.amount)
     }
 
     @Test
@@ -153,6 +175,11 @@ class PayReservationUseCaseTest {
         private val byKey = linkedMapOf<String, Payment>()
 
         override fun findByIdempotencyKey(key: String): Payment? = byKey[key]
+
+        override fun findLatestApproved(reservationId: UUID): Payment? =
+            byKey.values
+                .filter { it.reservationId == reservationId && it.status == PaymentStatus.APPROVED }
+                .maxByOrNull { it.createdAt }
 
         override fun save(payment: Payment): Payment = payment.also { byKey[it.idempotencyKey] = it }
     }

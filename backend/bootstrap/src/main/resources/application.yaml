@@ -49,6 +49,8 @@ app:
     enabled: ${MAIL_ENABLED:true}
   payments:
     provider: ${PAYMENT_PROVIDER:fake}
+  currency:
+    default: ${CURRENCY_DEFAULT:PLN}
 
 management:
   endpoints:

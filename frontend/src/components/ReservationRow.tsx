@@ -5,6 +5,11 @@ import { useConfirm } from './confirm/ConfirmProvider'
 import { HoldSeatList } from './HoldSeatList'
 import { formatRemaining, useRemainingSeconds } from './useRemainingSeconds'
 
+const money = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
 export function ReservationRow({
   reservation,
   busy,
@@ -58,6 +63,18 @@ export function ReservationRow({
         </span>
       </div>
       {remaining !== null && <p className="muted">Held for {formatRemaining(remaining)}</p>}
+      {reservation.paid ? (
+        <p>
+          Paid <strong>{money.format(reservation.paid.amount)} {reservation.paid.currency}</strong> by card ••••{' '}
+          {reservation.paid.cardLast4}
+        </p>
+      ) : (
+        reservation.price && (
+          <p className="muted">
+            Total {money.format(reservation.price.amount)} {reservation.price.currency}
+          </p>
+        )
+      )}
       <HoldSeatList
         seats={reservation.seats}
         picked={picked}
