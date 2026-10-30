@@ -95,24 +95,73 @@ flight-booking/
     └── infrastructure.yaml   # Podman pod: PostgreSQL, Mailpit and Kafka
 ```
 
+## Running the whole stack (Podman)
+
+Requires Podman and `envsubst` (package `gettext`).
+
+```bash
+cd infra
+cp .env.example .env   # first time only, replace the <placeholders>
+./up.sh
+```
+
+`up.sh` builds the backend and frontend images, substitutes `infra/.env` into `infrastructure.yaml` and starts the `flights-infra` pod:
+
+| Service | Address |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:8080 |
+| PostgreSQL | localhost:5432 |
+| Kafka | localhost:9092 |
+| Mailpit SMTP / UI | localhost:1025 / http://localhost:8025 |
+
+Stop it (the `pgdata` volume is kept):
+
+```bash
+podman kube down infra/infrastructure.yaml
+```
+
+Reset the database between runs:
+
+```bash
+podman kube down infra/infrastructure.yaml
+podman volume rm pgdata
+```
+
+## Running only the dependencies (IDE)
+
+To run the backend and frontend from the IDE while Podman provides the services:
+
+```bash
+./infra/up-deps.sh
+```
+
+This starts only PostgreSQL, Kafka and Mailpit in the `flights-deps` pod. Configure the backend with the variables from `backend/local-env` and start the frontend with `npm run dev`. Stop with:
+
+```bash
+podman kube down infra/dependencies.yaml
+```
+
+Do not run `up.sh` and `up-deps.sh` at the same time — they use the same host ports and the same `pgdata` volume.
+
 ## Running locally
 
-Only infrastructure runs in a container during development. The app itself runs directly on the host.
+Only the dependencies run in containers when you develop against an IDE. The app itself runs directly on the host.
 
 **1. Start the infrastructure**
 
 ```bash
 cd infra
 cp .env.example .env   # first time only
-./up.sh
+./up-deps.sh
 ```
 
-`up.sh` loads `infra/.env` and substitutes the `POSTGRES_*` and `KAFKA_*` values into the pod. The pod publishes PostgreSQL 18 on `localhost:5432`, Mailpit (SMTP `1025`, UI `8025`) and Kafka on `localhost:9092`.
+`up-deps.sh` loads `infra/.env` and substitutes the `POSTGRES_*` and `KAFKA_*` values into the pod. The pod publishes PostgreSQL 18 on `localhost:5432`, Mailpit (SMTP `1025`, UI `8025`) and Kafka on `localhost:9092`.
 
 To stop it (the `pgdata` volume is kept):
 
 ```bash
-podman kube down infra/infrastructure.yaml
+podman kube down infra/dependencies.yaml
 ```
 
 On macOS/Windows, first run `podman machine init` and `podman machine start`.
@@ -244,7 +293,7 @@ Local-first, cloud-ready:
 2. The backend is a single Spring Boot jar (`./gradlew :bootstrap:bootJar`) configured through environment variables only.
 3. Flyway migrations run at startup, so a new environment only needs an empty database plus `DB_URL`, `DB_USER`, `DB_PASSWORD` and `JWT_SECRET`.
 4. The frontend builds to static files (`npm run build`) and can be served by any static host or a CDN, pointing `/api` at the backend.
-5. Containerizing the backend and frontend is deliberately out of scope for now.
+5. The backend and frontend also run as containers in the same Podman pod (`infra/up.sh`), and a CI job starts the whole stack.
 
 ## Fake payments
 

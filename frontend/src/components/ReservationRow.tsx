@@ -82,6 +82,9 @@ export function ReservationRow({
         onToggle={toggle}
       />
       <div className="reservation-actions">
+        {pending && (
+          <Link to={`/checkout/${encodeURIComponent(reservation.reservationId)}`}>Complete payment</Link>
+        )}
         <Link to={`/flights/${encodeURIComponent(reservation.flightId)}/seats`}>Open flight</Link>
         {pending && (
           <>

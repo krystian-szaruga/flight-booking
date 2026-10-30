@@ -65,6 +65,63 @@ spec:
       ports:
         - containerPort: 9092
           hostPort: 9092
+    - name: backend
+      image: localhost/flight-booking-backend:latest
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: DB_URL
+          value: "${DB_URL}"
+        - name: DB_USER
+          value: "${DB_USER}"
+        - name: DB_PASSWORD
+          value: "${DB_PASSWORD}"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "${KAFKA_BOOTSTRAP_SERVERS}"
+        - name: NOTIFICATION_TOPIC
+          value: "${NOTIFICATION_TOPIC}"
+        - name: NOTIFICATION_CONSUMER_GROUP
+          value: "${NOTIFICATION_CONSUMER_GROUP}"
+        - name: NOTIFICATION_KAFKA_ENABLED
+          value: "${NOTIFICATION_KAFKA_ENABLED}"
+        - name: PAYMENT_REMINDER_ENABLED
+          value: "${PAYMENT_REMINDER_ENABLED}"
+        - name: PAYMENT_REMINDER_LEAD_MINUTES
+          value: "${PAYMENT_REMINDER_LEAD_MINUTES}"
+        - name: PAYMENT_REMINDER_CRON
+          value: "${PAYMENT_REMINDER_CRON}"
+        - name: DEPARTURE_REMINDER_ENABLED
+          value: "${DEPARTURE_REMINDER_ENABLED}"
+        - name: DEPARTURE_REMINDER_LEAD_HOURS
+          value: "${DEPARTURE_REMINDER_LEAD_HOURS}"
+        - name: DEPARTURE_REMINDER_CRON
+          value: "${DEPARTURE_REMINDER_CRON}"
+        - name: FILE_PROVIDER_ENABLED
+          value: "${FILE_PROVIDER_ENABLED}"
+        - name: FILE_PROVIDER_LOCATION
+          value: "${FILE_PROVIDER_LOCATION}"
+        - name: JWT_SECRET
+          value: "${JWT_SECRET}"
+        - name: PASSPORT_ENCRYPTION_KEY
+          value: "${PASSPORT_ENCRYPTION_KEY}"
+        - name: COOKIE_SECURE
+          value: "${COOKIE_SECURE}"
+        - name: PULL_CRON
+          value: "${PULL_CRON}"
+        - name: PULL_ENABLED
+          value: "${PULL_ENABLED}"
+        - name: PULL_HORIZON_DAYS
+          value: "${PULL_HORIZON_DAYS}"
+        - name: PULL_ON_STARTUP
+          value: "${PULL_ON_STARTUP}"
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+    - name: frontend
+      image: localhost/flight-booking-frontend:latest
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 80
+          hostPort: 5173
   volumes:
     - name: pgdata
       persistentVolumeClaim:

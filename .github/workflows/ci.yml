@@ -6,12 +6,14 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'infra/**'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'infra/**'
       - '.github/workflows/ci.yml'
 
 concurrency:
@@ -80,3 +82,79 @@ jobs:
 
       - name: Test
         run: npm run test
+
+  infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [build-and-test, frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman gettext-base
+
+      - name: Write CI env
+        working-directory: infra
+        run: |
+          cat > .env <<'EOF'
+          POSTGRES_DB=flights
+          POSTGRES_USER=flights
+          DB_URL=jdbc:postgresql://localhost:5432/flights
+          DB_USER=flights
+          KAFKA_NODE_ID=1
+          KAFKA_PROCESS_ROLES=broker,controller
+          KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+          KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+          KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+          KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+          NOTIFICATION_TOPIC=flight-booking.notifications
+          NOTIFICATION_CONSUMER_GROUP=flight-booking-notifications
+          NOTIFICATION_KAFKA_ENABLED=true
+          PAYMENT_REMINDER_ENABLED=true
+          PAYMENT_REMINDER_LEAD_MINUTES=10
+          PAYMENT_REMINDER_CRON="0 * * * * *"
+          DEPARTURE_REMINDER_ENABLED=true
+          DEPARTURE_REMINDER_LEAD_HOURS=24
+          DEPARTURE_REMINDER_CRON="0 */5 * * * *"
+          FILE_PROVIDER_ENABLED=true
+          FILE_PROVIDER_LOCATION=classpath:feed-ci.json
+          COOKIE_SECURE=false
+          PULL_CRON="0 0 */6 * * *"
+          PULL_ENABLED=true
+          PULL_HORIZON_DAYS=60
+          PULL_ON_STARTUP=true
+          EOF
+          {
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo "JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')"
+            echo "PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n')"
+          } >> .env
+
+      - name: Start infra
+        run: ./infra/up.sh
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/actuator/health >/dev/null 2>&1 \
+              && curl -fsS http://localhost:5173/ >/dev/null 2>&1; then
+              echo "infra is up"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "infra did not become healthy" >&2
+          exit 1
+
+      - name: Stop infra
+        if: always()
+        run: podman kube down infra/infrastructure.yaml || true
