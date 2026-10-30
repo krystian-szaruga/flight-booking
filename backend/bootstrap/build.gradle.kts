@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":adapter:scheduler"))
     implementation(project(":adapter:security"))
     implementation(project(":adapter:mail"))
+    implementation(project(":adapter:payment"))
 
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.bundles.spring.runtime)

@@ -64,4 +64,16 @@ internal interface SpringReservationSeatJpaRepository : JpaRepository<Reservatio
     fun findByReservationId(reservationId: UUID): List<ReservationSeatEntity>
 
     fun deleteByReservationId(reservationId: UUID): Long
+
+    @Query(
+        value = """
+        select sum(fc.base_price_amount * fc.multiplier) as amount, max(fc.currency) as currency
+        from reservation_seat rs
+        join flight_seat fs on fs.id = rs.flight_seat_id
+        join fare_class fc on fc.id = fs.fare_class_id
+        where rs.reservation_id = :reservationId
+        """,
+        nativeQuery = true,
+    )
+    fun sumPriceForReservation(@Param("reservationId") reservationId: UUID): ReservationPriceView?
 }

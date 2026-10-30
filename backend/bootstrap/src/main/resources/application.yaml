@@ -47,6 +47,8 @@ app:
     app-name: ${APP_NAME:flight-booking}
     from: ${MAIL_FROM:no-reply@flight-booking.local}
     enabled: ${MAIL_ENABLED:true}
+  payments:
+    provider: ${PAYMENT_PROVIDER:fake}
 
 management:
   endpoints:

@@ -239,6 +239,11 @@ class ReservationUseCaseTest {
             return updated
         }
 
+        override fun confirm(reservationId: UUID): Reservation? {
+            val current = reservations[reservationId] ?: return null
+            return current.pay(now()).also { reservations[reservationId] = it }
+        }
+
         override fun findExpired(at: Instant, limit: Int): List<Reservation> =
             reservations.values
                 .filter { it.status == ReservationStatus.PENDING && !it.expiresAt!!.isAfter(at) }

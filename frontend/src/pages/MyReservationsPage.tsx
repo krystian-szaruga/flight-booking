@@ -7,7 +7,7 @@ import { isUnauthorized, useRequireAuth } from '../auth/useRequireAuth'
 import { ReservationRow } from '../components/ReservationRow'
 
 export function MyReservationsPage() {
-  const { user } = useAuth()
+  const { user, expireSession } = useAuth()
   useRequireAuth()
   const navigate = useNavigate()
 
@@ -15,7 +15,10 @@ export function MyReservationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const sendToAuth = () => navigate('/auth?redirect=%2Freservations', { replace: true })
+  const sendToAuth = () => {
+    expireSession()
+    navigate('/auth?redirect=%2Freservations', { replace: true })
+  }
 
   const load = useCallback(
     (signal?: AbortSignal) => {

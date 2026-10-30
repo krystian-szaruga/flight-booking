@@ -94,8 +94,21 @@ internal class ReservationRepositoryAdapter(
             updated
         }
 
-    override fun findExpired(at: Instant, limit: Int): List<Reservation> = transactions.execute {
-        reservations.findPendingExpired(at, PageRequest.of(0, limit))
+    override fun confirm(reservationId: UUID): Reservation? = transactions.execute {
+        val locked = reservations.lockById(reservationId) ?: return@execute null
+        val current = load(reservationId) ?: return@execute null
+        val confirmed = current.pay(clockNow())
+        locked.status = confirmed.status.name
+        locked.expiresAt = confirmed.expiresAt
+        val links = reservationSeats.findByReservationId(reservationId)
+        reservations.lockSeatsByIds(links.map { it.flightSeatId }).forEach {
+            it.status = SOLD
+            it.holdExpiresAt = null
+        }
+        confirmed
+    }
+
+    override fun findExpired(at: Instant, limit: Int): List<Reservation> = transactions.execute {        reservations.findPendingExpired(at, PageRequest.of(0, limit))
             .mapNotNull { entity -> load(entity.id) }
     }
 
@@ -150,5 +163,6 @@ internal class ReservationRepositoryAdapter(
     private companion object {
         const val AVAILABLE = "AVAILABLE"
         const val HELD = "HELD"
+        const val SOLD = "SOLD"
     }
 }

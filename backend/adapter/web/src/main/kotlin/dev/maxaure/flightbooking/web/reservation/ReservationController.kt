@@ -1,12 +1,15 @@
 package dev.maxaure.flightbooking.web.reservation
 
 import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
+import dev.maxaure.flightbooking.application.port.`in`.PayReservation
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.payment.PaymentStatus
 import dev.maxaure.flightbooking.domain.model.user.UserId
 import dev.maxaure.flightbooking.web.auth.CurrentUser
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -22,6 +25,7 @@ import java.util.UUID
 internal class ReservationController(
     private val reservations: ReserveSeats,
     private val myReservations: ListMyReservations,
+    private val payments: PayReservation,
 ) {
 
     @GetMapping
@@ -59,4 +63,19 @@ internal class ReservationController(
         ReservationResponse.from(
             reservations.cancelSeats(userId, reservationId, request.seats.map(SeatNumber::of)),
         )
+
+    @PostMapping("/{reservationId}/payment")
+    fun pay(
+        @CurrentUser userId: UserId,
+        @PathVariable reservationId: UUID,
+        @RequestBody @Valid request: PayReservationRequest,
+    ): ResponseEntity<PaymentResponse> {
+        val payment = payments.pay(userId, reservationId, request.toRequest())
+        val body = PaymentResponse.from(payment)
+        return if (payment.status == PaymentStatus.APPROVED) {
+            ResponseEntity.status(HttpStatus.CREATED).body(body)
+        } else {
+            ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(body)
+        }
+    }
 }

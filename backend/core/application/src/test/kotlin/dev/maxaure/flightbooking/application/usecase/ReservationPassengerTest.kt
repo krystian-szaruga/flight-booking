@@ -143,6 +143,8 @@ class ReservationPassengerTest {
         override fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation? =
             error("Not used by these tests")
 
+        override fun confirm(reservationId: UUID): Reservation? = error("Not used by these tests")
+
         override fun findExpired(at: Instant, limit: Int): List<Reservation> = emptyList()
 
         override fun findByUserId(userId: UUID): List<Reservation> =
