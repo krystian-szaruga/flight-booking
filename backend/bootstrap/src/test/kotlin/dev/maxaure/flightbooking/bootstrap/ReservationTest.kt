@@ -6,6 +6,7 @@ import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.ints.shouldBeExactly
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -75,6 +76,23 @@ class ReservationTest(
 
         status shouldBeExactly 404
         reservationIdsOf(bolek, "bolek@example.com") shouldContainExactly listOf(bolekReservation)
+    }
+
+    "when the owner cancels a reservation then it is cancelled with no price instead of failing" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        hold(anna, "anna@example.com", flightId, "12A")
+        val reservation = reservationIdsOf(anna, "anna@example.com").single()
+
+        val (status, body) = anna.delete()
+            .uri("/api/v1/reservations/$reservation")
+            .header(HttpHeaders.COOKIE, sessionCookie(anna, "anna@example.com"))
+            .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
+
+        status shouldBeExactly 200
+        body shouldContain "CANCELLED"
+        body shouldContain "\"price\":null"
     }
 
     "when several users hold seats on one flight then the listing counts match the holds" {

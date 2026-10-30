@@ -1,39 +1,26 @@
 import { useState } from 'react'
-import type { HoldSeat, PassengerType, ReservationResponse, SeatResponse } from '../api/types'
+import type { HoldSeat, PassengerType, SeatResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { SeatEditor } from './SeatEditor'
-import { SeatHold } from './SeatHold'
 import type { PassengerDraft } from './passengerDraft'
 
 interface HoldPanelProps {
   selected: SeatResponse[]
-  reservations: ReservationResponse[]
   busy: boolean
   error: string | null
   onHold: (seats: HoldSeat[]) => void
-  onCancel: (reservationId: string) => void
-  onCancelSeats: (reservationId: string, seats: string[]) => void
   onReleaseSeat: (seat: string) => void
-  onPay: (reservationId: string, cardNumber: string) => void
 }
 
 export function HoldPanel({
   selected,
-  reservations,
   busy,
   error,
   onHold,
-  onCancel,
-  onCancelSeats,
   onReleaseSeat,
-  onPay,
 }: HoldPanelProps) {
   const { user } = useAuth()
   const [drafts, setDrafts] = useState<Record<string, PassengerDraft>>({})
-
-  const activeHolds = reservations.filter(
-    (item) => item.status === 'PENDING' || item.status === 'CONFIRMED',
-  )
 
   const choose = (seat: string, passengerType: PassengerType) =>
     setDrafts((current) => ({
@@ -72,37 +59,14 @@ export function HoldPanel({
         />
       )}
 
-      {activeHolds.length > 0 && (
-        <section className="hold-panel" aria-live="polite">
-          <h2>{activeHolds.length === 1 ? 'Seat on hold' : 'Seats on hold'}</h2>
-          <ul className="hold-seats">
-            {activeHolds.map((hold) => (
-              <SeatHold
-                key={hold.reservationId}
-                hold={hold}
-                busy={busy}
-                onCancel={onCancel}
-                onCancelSeats={onCancelSeats}
-                onPay={onPay}
-              />
-            ))}
-          </ul>
-          {error && <p className="error">{error}</p>}
-        </section>
-      )}
-
       {selected.length === 0 ? (
-        <>
-          <p className="muted">
-            Select {activeHolds.length > 0 ? 'more ' : ''}seats on the map to hold them.
-          </p>
-          {activeHolds.length === 0 && error && <p className="error">{error}</p>}
-        </>
+        <p className="muted">Select seats on the map to buy them.</p>
       ) : (
         <p className="muted">
           Selected: <strong>{selected.map((seat) => seat.seat).join(', ')}</strong>
         </p>
       )}
+      {error && <p className="error">{error}</p>}
     </>
   )
 }

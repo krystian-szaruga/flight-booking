@@ -2,13 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ApiError,
-  cancelReservation,
-  cancelReservationSeats,
   getSeatMap,
   holdSeats,
-  payReservation,
 } from '../../api/client'
-import type { Cabin, HoldSeat, ReservationResponse, SeatMapResponse, SeatResponse } from '../../api/types'
+import type { Cabin, HoldSeat, SeatMapResponse, SeatResponse } from '../../api/types'
 import { useAuth } from '../../auth/AuthContext'
 import { isUnauthorized } from '../../auth/useRequireAuth'
 import { SignInToContinue } from '../../components/AfterAuthLink'
@@ -16,12 +13,6 @@ import { HoldPanel } from '../../components/HoldPanel'
 import { SeatGrid } from '../../components/SeatGrid'
 import { useCurrency } from '../../currency/CurrencyContext'
 import { FareSummary, FlightHeader, SeatLegend } from './FlightHeader'
-
-function newPaymentKey(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2)
-}
 
 export function SeatMapPage() {
   const navigate = useNavigate()
@@ -41,7 +32,6 @@ export function SeatMapPage() {
   const [seatMap, setSeatMap] = useState<SeatMapResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
-  const [reservations, setReservations] = useState<ReservationResponse[]>([])
   const [holdError, setHoldError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -80,11 +70,6 @@ export function SeatMapPage() {
     })
   }
 
-  const replaceReservation = (updated: ReservationResponse) =>
-    setReservations((current) =>
-      current.map((item) => (item.reservationId === updated.reservationId ? updated : item)),
-    )
-
   const guarded = async (action: () => Promise<void>, fallback: string) => {
     setBusy(true)
     setHoldError(null)
@@ -105,23 +90,12 @@ export function SeatMapPage() {
     if (!flightId) return
     void guarded(async () => {
       const created = await holdSeats(flightId, seats, currency)
-      setReservations((current) => [created, ...current])
       setSelected(new Set())
-      load()
-    }, 'Could not hold those seats.')
+      navigate(`/checkout/${encodeURIComponent(created.reservationId)}`, {
+        state: { reservation: created, seatMap },
+      })
+    }, 'Could not start the purchase.')
   }
-
-  const onCancel = (reservationId: string) =>
-    void guarded(async () => {
-      replaceReservation(await cancelReservation(reservationId, currency))
-      load()
-    }, 'Could not cancel the hold.')
-
-  const onCancelSeats = (reservationId: string, seats: string[]) =>
-    void guarded(async () => {
-      replaceReservation(await cancelReservationSeats(reservationId, seats, currency))
-      load()
-    }, 'Could not release those seats.')
 
   const onReleaseSeat = (seat: string) =>
     setSelected((current) => {
@@ -129,39 +103,6 @@ export function SeatMapPage() {
       next.delete(seat)
       return next
     })
-
-  const onPay = (reservationId: string, cardNumber: string) =>
-    void guarded(async () => {
-      const payment = await payReservation(reservationId, {
-        idempotencyKey: newPaymentKey(),
-        cardNumber,
-        cardHolder:
-          [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Card holder',
-        currency,
-      })
-      if (payment.status === 'DECLINED') {
-        setHoldError(payment.declineReason ?? 'The card was declined.')
-        return
-      }
-      setReservations((current) =>
-        current.map((item) =>
-          item.reservationId === reservationId
-            ? {
-                ...item,
-                status: 'CONFIRMED' as const,
-                expiresAt: null,
-                paid: {
-                  amount: payment.amount,
-                  currency: payment.currency,
-                  cardLast4: payment.cardLast4,
-                  paidAt: payment.createdAt,
-                },
-              }
-            : item,
-        ),
-      )
-      load()
-    }, 'Could not take the payment.')
 
   if (error) {
     return (
@@ -203,14 +144,10 @@ export function SeatMapPage() {
       )}
       <HoldPanel
         selected={selectedSeats}
-        reservations={reservations}
         busy={busy}
         error={holdError}
         onHold={onHold}
-        onCancel={onCancel}
-        onCancelSeats={onCancelSeats}
         onReleaseSeat={onReleaseSeat}
-        onPay={onPay}
       />
     </section>
   )

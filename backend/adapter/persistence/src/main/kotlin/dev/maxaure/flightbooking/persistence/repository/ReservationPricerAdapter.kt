@@ -12,7 +12,9 @@ internal class ReservationPricerAdapter(
 
     override fun priceOf(reservationId: UUID): Price? =
         reservationSeats.sumPriceForReservation(reservationId)?.let {
-            Price(it.getAmount().setScale(MONEY_SCALE, RoundingMode.HALF_UP), it.getCurrency())
+            val amount = it.getAmount() ?: return@let null
+            val currency = it.getCurrency() ?: return@let null
+            Price(amount.setScale(MONEY_SCALE, RoundingMode.HALF_UP), currency)
         }
 
     private companion object {
@@ -21,7 +23,7 @@ internal class ReservationPricerAdapter(
 }
 
 internal interface ReservationPriceView {
-    fun getAmount(): BigDecimal
+    fun getAmount(): BigDecimal?
 
-    fun getCurrency(): String
+    fun getCurrency(): String?
 }

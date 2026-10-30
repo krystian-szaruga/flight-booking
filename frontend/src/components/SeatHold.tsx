@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { ReservationResponse } from '../api/types'
 import { useConfirm } from './confirm/ConfirmProvider'
 import { HoldSeatList } from './HoldSeatList'
@@ -9,30 +10,21 @@ const money = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 })
 
-const TEST_CARDS = [
-  { number: '4242424242424242', label: 'Test card · approves' },
-  { number: '4000000000000002', label: 'Test card · declines' },
-  { number: '4000000000009995', label: 'Test card · no funds' },
-]
-
 export function SeatHold({
   hold,
   busy,
   onCancel,
   onCancelSeats,
-  onPay,
 }: {
   hold: ReservationResponse
   busy: boolean
   onCancel: (reservationId: string) => void
   onCancelSeats: (reservationId: string, seats: string[]) => void
-  onPay: (reservationId: string, cardNumber: string) => void
 }) {
   const seconds = useRemainingSeconds(hold.expiresAt ?? null)
   const confirmed = hold.status === 'CONFIRMED'
   const expired = !confirmed && seconds === 0
   const [picked, setPicked] = useState<string[]>([])
-  const [card, setCard] = useState(TEST_CARDS[0].number)
   const confirm = useConfirm()
 
   const toggle = (seat: string) =>
@@ -104,32 +96,18 @@ export function SeatHold({
       )}
       {hold.status === 'PENDING' && !expired && (
         <div className="payment-box">
-          <label htmlFor={`card-${hold.reservationId}`}>Test card</label>
-          <select
-            id={`card-${hold.reservationId}`}
-            value={card}
-            disabled={busy}
-            onChange={(event) => setCard(event.target.value)}
-          >
-            {TEST_CARDS.map((option) => (
-              <option key={option.number} value={option.number}>
-                {option.label}
-              </option>
-            ))}
-          </select>
           {hold.price && (
             <strong className="payment-total">
               {money.format(hold.price.amount)} {hold.price.currency}
             </strong>
           )}
-          <button
-            type="button"
+          <Link
+            to={`/checkout/${encodeURIComponent(hold.reservationId)}`}
+            state={{ reservation: hold }}
             className="button"
-            disabled={busy}
-            onClick={() => onPay(hold.reservationId, card)}
           >
-            Pay now
-          </button>
+            Complete payment
+          </Link>
         </div>
       )}
     </li>

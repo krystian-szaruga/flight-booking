@@ -7,9 +7,12 @@ import { SessionBadge } from './components/SessionBadge'
 import { ThemeToggle } from './components/ThemeToggle'
 import { CurrencyProvider } from './currency/CurrencyContext'
 import { AuthPage } from './pages/auth/AuthPage'
+import { CheckoutPage } from './pages/CheckoutPage'
 import { LandingPage } from './pages/LandingPage'
 import { MyReservationsPage } from './pages/MyReservationsPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/search/SearchPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { ResultsPage } from './pages/ResultsPage'
 import { SeatMapPage } from './pages/seats/SeatMapPage'
 
@@ -49,6 +52,30 @@ export function App() {
                     element={
                       <ProtectedRoute>
                         <MyReservationsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/checkout/:reservationId"
+                    element={
+                      <ProtectedRoute>
+                        <CheckoutPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <SettingsPage />
                       </ProtectedRoute>
                     }
                   />

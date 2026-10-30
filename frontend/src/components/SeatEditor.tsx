@@ -69,8 +69,8 @@ export function SeatEditor({
           />
         ))}
       </ul>
-      <button type="button" disabled={!ready || busy} onClick={submit}>
-        {busy ? 'Holding…' : 'Hold seats'}
+      <button type="button" className="button seat-buy" disabled={!ready || busy} onClick={submit}>
+        {busy ? 'Starting checkout…' : 'Buy'}
       </button>
     </section>
   )
