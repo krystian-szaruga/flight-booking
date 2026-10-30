@@ -14,13 +14,27 @@ interface HoldPanelProps {
 
 export function HoldPanel({
   selected,
+  initialPassengers,
   busy,
   error,
   onHold,
   onReleaseSeat,
-}: HoldPanelProps) {
+}: HoldPanelProps & { initialPassengers?: HoldSeat[] }) {
   const { user } = useAuth()
-  const [drafts, setDrafts] = useState<Record<string, PassengerDraft>>({})
+  const [drafts, setDrafts] = useState<Record<string, PassengerDraft>>(() => {
+    const initial: Record<string, PassengerDraft> = {}
+    for (const passenger of initialPassengers ?? []) {
+      initial[passenger.seat] = {
+        passengerType: passenger.passengerType,
+        firstName: passenger.firstName ?? '',
+        lastName: passenger.lastName ?? '',
+        passportNumber: passenger.passportNumber ?? '',
+        phoneNumber: passenger.phoneNumber ?? '',
+        dateOfBirth: passenger.dateOfBirth ?? '',
+      }
+    }
+    return initial
+  })
 
   const choose = (seat: string, passengerType: PassengerType) =>
     setDrafts((current) => ({
@@ -30,6 +44,8 @@ export function HoldPanel({
         firstName: current[seat]?.firstName ?? '',
         lastName: current[seat]?.lastName ?? '',
         passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
       },
     }))
 
@@ -41,6 +57,8 @@ export function HoldPanel({
         firstName: field === 'firstName' ? value : (current[seat]?.firstName ?? ''),
         lastName: field === 'lastName' ? value : (current[seat]?.lastName ?? ''),
         passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
       },
     }))
 
@@ -52,6 +70,34 @@ export function HoldPanel({
         firstName: current[seat]?.firstName ?? '',
         lastName: current[seat]?.lastName ?? '',
         passportNumber: value,
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
+      },
+    }))
+
+  const updatePhone = (seat: string, value: string) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType: current[seat]?.passengerType ?? 'OTHER',
+        firstName: current[seat]?.firstName ?? '',
+        lastName: current[seat]?.lastName ?? '',
+        passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: value,
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
+      },
+    }))
+
+  const updateBirth = (seat: string, value: string) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType: current[seat]?.passengerType ?? 'OTHER',
+        firstName: current[seat]?.firstName ?? '',
+        lastName: current[seat]?.lastName ?? '',
+        passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: value,
       },
     }))
 
@@ -68,6 +114,8 @@ export function HoldPanel({
           onChoose={choose}
           onName={updateName}
           onPassport={updatePassport}
+          onPhone={updatePhone}
+          onBirth={updateBirth}
           onRemove={onReleaseSeat}
           onHold={onHold}
         />

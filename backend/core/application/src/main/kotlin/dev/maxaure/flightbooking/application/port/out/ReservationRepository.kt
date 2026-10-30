@@ -1,6 +1,7 @@
 package dev.maxaure.flightbooking.application.port.out
 
 import dev.maxaure.flightbooking.domain.ConflictException
+import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import java.time.Instant
 import java.util.UUID
@@ -18,6 +19,8 @@ interface ReservationRepository {
     fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation?
 
     fun confirm(reservationId: UUID): Reservation?
+
+    fun updatePassengers(reservationId: UUID, seats: List<PassengerSeat>): Reservation?
 
     fun findExpired(at: Instant, limit: Int): List<Reservation>
 

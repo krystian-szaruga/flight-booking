@@ -7,6 +7,7 @@ import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerType
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
@@ -17,6 +18,7 @@ import dev.maxaure.flightbooking.domain.model.user.UserId
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
@@ -45,7 +47,17 @@ class ReservationUseCaseTest {
         User.verified(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
 
     private fun seats(vararg numbers: String) =
-        numbers.map { HoldSeatRequest(SeatNumber.of(it), PassengerType.OTHER, "Passenger", it, passportNumber = "X1234567") }
+        numbers.map {
+            HoldSeatRequest(
+                SeatNumber.of(it),
+                PassengerType.OTHER,
+                "Passenger",
+                it,
+                passportNumber = "X1234567",
+                phoneNumber = "+48600123456",
+                dateOfBirth = LocalDate.of(1990, 1, 1),
+            )
+        }
 
     @Test
     fun `when a seat is already held then a second hold of the same seat is rejected and the first survives`() {
@@ -237,6 +249,11 @@ class ReservationUseCaseTest {
             val updated = current.copy(seats = remaining)
             reservations[reservationId] = updated
             return updated
+        }
+
+        override fun updatePassengers(reservationId: UUID, seats: List<PassengerSeat>): Reservation? {
+            val current = reservations[reservationId] ?: return null
+            return current.copy(seats = seats).also { reservations[reservationId] = it }
         }
 
         override fun confirm(reservationId: UUID): Reservation? {

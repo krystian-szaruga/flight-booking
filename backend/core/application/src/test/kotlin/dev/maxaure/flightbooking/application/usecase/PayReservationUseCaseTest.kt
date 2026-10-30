@@ -203,6 +203,11 @@ class PayReservationUseCaseTest {
         override fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation? =
             error("Not used")
 
+        override fun updatePassengers(reservationId: UUID, seats: List<PassengerSeat>): Reservation? {
+            val current = reservations[reservationId] ?: return null
+            return current.copy(seats = seats).also { reservations[reservationId] = it }
+        }
+
         override fun confirm(reservationId: UUID): Reservation? {
             val current = reservations[reservationId] ?: return null
             return current.pay(now()).also { reservations[reservationId] = it }

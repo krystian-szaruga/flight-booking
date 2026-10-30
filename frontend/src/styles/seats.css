@@ -234,16 +234,28 @@
   cursor: default;
 }
 
-.passport-field {
+.passport-field,
+.passenger-detail-field {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   font-size: 0.85rem;
 }
 
-.passport-field input {
+.passport-field input,
+.passenger-detail-field input {
   width: 100%;
   min-width: 0;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.passenger-name-fields input[aria-invalid='true'],
+.passenger-detail-field input[aria-invalid='true'] {
+  border-color: var(--danger);
 }
 
 .hold-seat-picker {

@@ -70,6 +70,8 @@ export interface HoldSeat {
   firstName?: string
   lastName?: string
   passportNumber?: string
+  phoneNumber?: string
+  dateOfBirth?: string
 }
 
 export interface GroundedSeat {
@@ -77,6 +79,8 @@ export interface GroundedSeat {
   firstName: string
   lastName: string
   passportNumber?: string | null
+  phoneNumber?: string | null
+  dateOfBirth?: string | null
 }
 
 export interface ReservationResponse {

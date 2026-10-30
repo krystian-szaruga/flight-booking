@@ -37,6 +37,9 @@ internal object ReservationMapper {
             lastName = seat.lastName,
             passportNumber = null,
             passportNumberLast4 = seat.passportNumberLast4,
+            phoneNumber = null,
+            phoneNumberLast4 = seat.phoneNumberLast4,
+            dateOfBirth = seat.dateOfBirth,
         )
 
     fun seatToEntity(
@@ -53,5 +56,8 @@ internal object ReservationMapper {
             lastName = seat.lastName,
             passportNumberCiphertext = seat.passportNumber?.let(passportCipher::encrypt),
             passportNumberLast4 = seat.passportNumber?.let(passportCipher::last4),
+            phoneNumberCiphertext = seat.phoneNumber?.let(passportCipher::encrypt),
+            phoneNumberLast4 = seat.phoneNumber?.let(passportCipher::last4),
+            dateOfBirth = seat.dateOfBirth,
         )
 }

@@ -220,9 +220,9 @@ Local-first, cloud-ready:
 
 ## Security notes
 
-Passport numbers are required for every passenger on a reservation seat. When supplied, `PassportCipher` encrypts them with AES-256-GCM using a random 12-byte IV per value and stores `v1:<iv>:<ciphertext>` in `reservation_seat.passport_number_ciphertext`. Only `passport_number_last4` is kept in plaintext, and the API returns `••••1234`; reads never decrypt. The key comes from `PASSPORT_ENCRYPTION_KEY` (Base64-encoded 32 bytes) and must never be committed; see `infra/.env.example`. The `v1:` prefix leaves room for key rotation.
+Passport numbers, phone numbers and dates of birth are required for every passenger on a reservation seat. `PassportCipher` encrypts passport and phone numbers with AES-256-GCM using a random 12-byte IV per value and stores `v1:<iv>:<ciphertext>` in `reservation_seat.passport_number_ciphertext` and `reservation_seat.phone_number_ciphertext`. Only the last four digits are kept in plaintext (`passport_number_last4`, `phone_number_last4`), the API returns `••••1234`, and reads never decrypt. Dates of birth are stored in `reservation_seat.date_of_birth` and returned as ISO dates. Phone numbers must start with `+` followed by 7–15 digits, for example `+48600123456`. The key comes from `PASSPORT_ENCRYPTION_KEY` (Base64-encoded 32 bytes) and must never be committed; see `infra/.env.example`. The `v1:` prefix leaves room for key rotation.
 
-This is a local, single-key setup. Generate the key with `export PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32)` before starting the backend. A production deployment would use KMS/HSM-backed envelope encryption, per-tenant keys, a retention/purge policy, audit logging on decrypt, and a separate service that owns sensitive documents. Passport values must never be logged, put in exception messages, or included in snapshots.
+This is a local, single-key setup. Generate the key with `export PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32)` before starting the backend. A production deployment would use KMS/HSM-backed envelope encryption, per-tenant keys, a retention/purge policy, audit logging on decrypt, and a separate service that owns sensitive documents. Passport and phone values must never be logged, put in exception messages, or included in snapshots.
 
 ## Currency
 

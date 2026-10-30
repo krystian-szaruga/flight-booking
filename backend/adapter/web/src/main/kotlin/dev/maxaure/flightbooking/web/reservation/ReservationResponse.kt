@@ -3,6 +3,7 @@ package dev.maxaure.flightbooking.web.reservation
 import dev.maxaure.flightbooking.application.port.`in`.ReservationView
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 
 internal data class ReservationResponse(
     val reservationId: String,
@@ -29,6 +30,8 @@ internal data class ReservationResponse(
                     it.firstName,
                     it.lastName,
                     it.passportNumberLast4?.let { last4 -> "••••$last4" },
+                    it.phoneNumberLast4?.let { last4 -> "••••$last4" },
+                    it.dateOfBirth,
                 )
             },
         )
@@ -52,4 +55,6 @@ internal data class HeldSeatResponse(
     val firstName: String,
     val lastName: String,
     val passportNumber: String?,
+    val phoneNumber: String?,
+    val dateOfBirth: LocalDate?,
 )

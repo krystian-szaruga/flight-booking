@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -57,6 +58,24 @@ internal class ReservationController(
             ),
         )
 
+    @PutMapping("/{reservationId}/passengers")
+    fun updatePassengers(
+        @CurrentUser userId: UserId,
+        @PathVariable reservationId: UUID,
+        @RequestParam(required = false) currency: String?,
+        @RequestBody @Valid request: HoldSeatsRequest,
+    ): ReservationResponse =
+        ReservationResponse.from(
+            descriptions.describe(
+                reservations.updatePassengers(
+                    userId = userId,
+                    reservationId = reservationId,
+                    seats = request.seats.map { it.toRequest() },
+                ),
+                currency,
+            ),
+        )
+
     @DeleteMapping("/{reservationId}")
     fun cancel(
         @CurrentUser userId: UserId,
@@ -65,8 +84,7 @@ internal class ReservationController(
     ): ReservationResponse =
         ReservationResponse.from(descriptions.describe(reservations.cancel(userId, reservationId), currency))
 
-    @DeleteMapping("/{reservationId}/seats")
-    fun cancelSeats(
+    @DeleteMapping("/{reservationId}/seats")    fun cancelSeats(
         @CurrentUser userId: UserId,
         @PathVariable reservationId: UUID,
         @RequestParam(required = false) currency: String?,

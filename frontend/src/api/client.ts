@@ -54,7 +54,7 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 async function send<T>(
-  method: 'POST' | 'DELETE',
+  method: 'POST' | 'PUT' | 'DELETE',
   path: string,
   body?: unknown,
   signal?: AbortSignal,
@@ -127,6 +127,20 @@ export function holdSeats(
   return send<ReservationResponse>(
     'POST',
     withCurrency(`/api/v1/reservations/flights/${encodeURIComponent(flightId)}`, currency),
+    { seats },
+    signal,
+  )
+}
+
+export function updateReservationPassengers(
+  reservationId: string,
+  seats: HoldSeat[],
+  currency?: string,
+  signal?: AbortSignal,
+): Promise<ReservationResponse> {
+  return send<ReservationResponse>(
+    'PUT',
+    withCurrency(`/api/v1/reservations/${encodeURIComponent(reservationId)}/passengers`, currency),
     { seats },
     signal,
   )

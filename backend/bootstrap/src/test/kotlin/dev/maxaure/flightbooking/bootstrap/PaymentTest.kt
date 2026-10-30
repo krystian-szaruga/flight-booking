@@ -184,7 +184,7 @@ class PaymentTest(
                 .uri("/api/v1/reservations/flights/${CatalogueTestSeed.FLIGHT_ID}")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.COOKIE, sessionCookie(client, email))
-                .body("""{"seats":[{"seat":"$seat","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace","passportNumber":"X1234567"}]}""")
+                .body("""{"seats":[{"seat":"$seat","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace","passportNumber":"X1234567","phoneNumber":"+48600123456","dateOfBirth":"1990-01-01"}]}""")
                 .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
 
             check(status in 200..299) { "hold $seat for $email failed: HTTP $status $body" }

@@ -142,7 +142,7 @@ class AuthTest(
             .uri("/api/v1/reservations/flights/${CatalogueTestSeed.FLIGHT_ID}")
             .contentType(MediaType.APPLICATION_JSON)
             .header(HttpHeaders.COOKIE, login(client, "verified@example.com", "s3cret123").cookie)
-            .body("""{"seats":[{"seat":"12A","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace","passportNumber":"X1234567"}]}""")
+            .body("""{"seats":[{"seat":"12A","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace","passportNumber":"X1234567","phoneNumber":"+48600123456","dateOfBirth":"1990-01-01"}]}""")
             .exchange { _, res -> res.statusCode.value() }
 
         status shouldBeExactly 201

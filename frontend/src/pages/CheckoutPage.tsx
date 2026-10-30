@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, getMyReservations, getSeatMap, payReservation } from '../api/client'
-import type { ReservationResponse, SeatMapResponse } from '../api/types'
+import type { HoldSeat, ReservationResponse, SeatMapResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useRequireAuth } from '../auth/useRequireAuth'
 import { formatRemaining, useRemainingSeconds } from '../components/useRemainingSeconds'
@@ -21,6 +21,7 @@ const money = new Intl.NumberFormat(undefined, {
 interface CheckoutState {
   reservation?: ReservationResponse
   seatMap?: SeatMapResponse
+  passengers?: HoldSeat[]
 }
 
 function paymentKey(): string {
@@ -32,6 +33,7 @@ function paymentKey(): string {
 export function CheckoutPage() {
   const { reservationId = '' } = useParams<{ reservationId: string }>()
   const location = useLocation()
+  const navigate = useNavigate()
   const state = (location.state ?? {}) as CheckoutState
   const { currency } = useCurrency()
   const { user } = useAuth()
@@ -45,6 +47,7 @@ export function CheckoutPage() {
   const [card, setCard] = useState(TEST_CARDS[0].number)
   const [paying, setPaying] = useState(false)
   const [declined, setDeclined] = useState<string | null>(null)
+  const [showPassport, setShowPassport] = useState(false)
 
   useEffect(() => {
     if (state.reservation || !reservationId) return
@@ -165,49 +168,67 @@ export function CheckoutPage() {
             <section className="checkout-card">
               <div className="checkout-card-head">
                 <h2>Passenger details</h2>
-                <span className="checkout-tag">Names from your seats</span>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() =>
+                    navigate(`/flights/${encodeURIComponent(reservation.flightId)}/seats`, {
+                      state: { edit: { reservation, passengers: state.passengers ?? [] } },
+                    })
+                  }
+                >
+                  Edit
+                </button>
               </div>
-              <p className="muted">
-                Fields marked “not supported” need a backend extension before they can be filled in.
-              </p>
               <ul className="checkout-passengers">
-                {reservation.seats.map((seat) => (
-                  <li key={seat.seat} className="checkout-passenger">
-                    <div className="checkout-passenger-head">
-                      <span className="checkout-seat">{seat.seat}</span>
-                      <strong>
-                        {seat.firstName} {seat.lastName}
-                      </strong>
-                    </div>
-                    <div className="checkout-grid">
-                      <label>
-                        <span className="muted">First name</span>
-                        <input value={seat.firstName} readOnly />
-                      </label>
-                      <label>
-                        <span className="muted">Last name</span>
-                        <input value={seat.lastName} readOnly />
-                      </label>
-                      <label>
-                        <span className="muted">Date of birth</span>
-                        <input disabled placeholder="Not supported yet" />
-                      </label>
-                      <label>
-                        <span className="muted">Nationality</span>
-                        <input disabled placeholder="Not supported yet" />
-                      </label>
-                      <label>
-                        <span className="muted">Passport number</span>
-                        <input value={seat.passportNumber ?? ''} readOnly placeholder="*******" />
-                      </label>
-                      <label>
-                        <span className="muted">Phone number</span>
-                        <input disabled placeholder="Not supported yet" />
-                      </label>
-                    </div>
-                  </li>
-                ))}
+                {reservation.seats.map((seat) => {
+                  const passenger = state.passengers?.find((item) => item.seat === seat.seat)
+                  const firstName = passenger?.firstName ?? seat.firstName
+                  const lastName = passenger?.lastName ?? seat.lastName
+                  const phoneNumber = passenger?.phoneNumber ?? seat.phoneNumber ?? ''
+                  const dateOfBirth = passenger?.dateOfBirth ?? seat.dateOfBirth ?? ''
+                  const passportNumber = passenger?.passportNumber ?? seat.passportNumber ?? ''
+                  return (
+                    <li key={seat.seat} className="checkout-passenger">
+                      <div className="checkout-passenger-head">
+                        <span className="checkout-seat">{seat.seat}</span>
+                        <strong>
+                          {firstName} {lastName}
+                        </strong>
+                      </div>
+                      <div className="checkout-grid">
+                        <label>
+                          <span className="muted">First name</span>
+                          <input value={firstName} readOnly />
+                        </label>
+                        <label>
+                          <span className="muted">Last name</span>
+                          <input value={lastName} readOnly />
+                        </label>
+                        <label>
+                          <span className="muted">Date of birth</span>
+                          <input value={dateOfBirth} readOnly placeholder="Not provided" />
+                        </label>
+                        <label>
+                          <span className="muted">Nationality</span>
+                          <input disabled placeholder="Not supported yet" />
+                        </label>
+                        <label>
+                          <span className="muted">Passport number</span>
+                          <input value={showPassport ? passportNumber : '••••••'} readOnly />
+                        </label>
+                        <label>
+                          <span className="muted">Phone number</span>
+                          <input value={phoneNumber} readOnly placeholder="Not provided" />
+                        </label>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
+              <button type="button" className="link-button" onClick={() => setShowPassport((current) => !current)}>
+                {showPassport ? 'Hide passport' : 'Show passport'}
+              </button>
             </section>
 
             <section className="checkout-card">
