@@ -22,10 +22,12 @@ export function SeatMapPage() {
   const [params] = useSearchParams()
   const cabin = params.get('cabin') as Cabin | null
 
-  const { user, loading } = useAuth()
+  const { user, loading, expireSession } = useAuth()
 
-  const sendToAuth = () =>
+  const sendToAuth = () => {
+    expireSession()
     navigate(`/auth?redirect=${encodeURIComponent(`${location.pathname}${location.search}`)}`, { replace: true })
+  }
 
   const [seatMap, setSeatMap] = useState<SeatMapResponse | null>(null)
   const [error, setError] = useState<string | null>(null)

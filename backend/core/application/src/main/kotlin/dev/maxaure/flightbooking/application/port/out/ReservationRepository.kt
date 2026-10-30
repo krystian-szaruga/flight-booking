@@ -17,6 +17,8 @@ interface ReservationRepository {
 
     fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation?
 
+    fun confirm(reservationId: UUID): Reservation?
+
     fun findExpired(at: Instant, limit: Int): List<Reservation>
 
     fun findByUserId(userId: UUID): List<Reservation>

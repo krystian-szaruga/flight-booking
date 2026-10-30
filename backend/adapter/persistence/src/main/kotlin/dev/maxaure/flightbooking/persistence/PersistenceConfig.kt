@@ -7,6 +7,8 @@ import dev.maxaure.flightbooking.application.port.out.RecordWriter
 import dev.maxaure.flightbooking.application.port.out.AirportDirectory
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
 import dev.maxaure.flightbooking.application.port.out.PendingRegistrationStore
+import dev.maxaure.flightbooking.application.port.out.PaymentRepository
+import dev.maxaure.flightbooking.application.port.out.ReservationPricer
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.application.port.out.RevokedTokenRepository
@@ -17,6 +19,8 @@ import dev.maxaure.flightbooking.persistence.repository.FlightRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.FlightSearchAdapter
 import dev.maxaure.flightbooking.persistence.repository.IngestionRunRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.PendingRegistrationAdapter
+import dev.maxaure.flightbooking.persistence.repository.PaymentRepositoryAdapter
+import dev.maxaure.flightbooking.persistence.repository.ReservationPricerAdapter
 import dev.maxaure.flightbooking.persistence.repository.ReservationRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.RevokedTokenRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.SpringAirportJpaRepository
@@ -27,6 +31,7 @@ import dev.maxaure.flightbooking.persistence.repository.SpringFlightSeatJpaRepos
 import dev.maxaure.flightbooking.persistence.repository.SpringRevokedTokenJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringIngestionRunJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringPendingRegistrationJpaRepository
+import dev.maxaure.flightbooking.persistence.repository.SpringPaymentJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringReservationJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringReservationSeatJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringSeatMapJpaRepository
@@ -84,6 +89,19 @@ internal class PersistenceConfig {
     ): ReservationRepository = ReservationRepositoryAdapter(
         reservations,
         reservationSeats,
+        TransactionTemplate(transactions),
+    )
+
+    @Bean
+    fun reservationPricer(reservationSeats: SpringReservationSeatJpaRepository): ReservationPricer =
+        ReservationPricerAdapter(reservationSeats)
+
+    @Bean
+    fun paymentRepository(
+        payments: SpringPaymentJpaRepository,
+        transactions: PlatformTransactionManager,
+    ): PaymentRepository = PaymentRepositoryAdapter(
+        payments,
         TransactionTemplate(transactions),
     )
 

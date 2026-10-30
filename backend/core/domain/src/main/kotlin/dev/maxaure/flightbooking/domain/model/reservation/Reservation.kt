@@ -52,7 +52,9 @@ data class Reservation(
         seats.forEach {
             if (it.fullName.isBlank()) throw InvalidDomainValueException("Passenger name must not be blank")
         }
-        require(holdsSeats == (expiresAt != null)) { "Only a pending reservation carries a hold expiry" }
+        require((status == ReservationStatus.PENDING) == (expiresAt != null)) {
+            "Only a pending reservation carries a hold expiry"
+        }
     }
 
     fun expire(at: Instant): Reservation {
@@ -68,6 +70,17 @@ data class Reservation(
             throw ConflictException("Reservation $id is ${status.name.lowercase()} and cannot be cancelled")
         }
         return copy(status = ReservationStatus.CANCELLED, expiresAt = null)
+    }
+
+    fun pay(now: Instant): Reservation {
+        if (status != ReservationStatus.PENDING) {
+            throw ConflictException("Reservation $id is ${status.name.lowercase()} and cannot be paid")
+        }
+        val holdEndsAt = requireNotNull(expiresAt) { "A pending reservation must carry a hold expiry" }
+        if (!now.isBefore(holdEndsAt)) {
+            throw ConflictException("Reservation $id hold has expired and cannot be paid")
+        }
+        return copy(status = ReservationStatus.CONFIRMED, expiresAt = null)
     }
 
     companion object {

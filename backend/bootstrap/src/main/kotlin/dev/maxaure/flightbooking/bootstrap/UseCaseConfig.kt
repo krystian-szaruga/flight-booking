@@ -4,6 +4,7 @@ import dev.maxaure.flightbooking.application.port.`in`.IngestCatalogue
 import dev.maxaure.flightbooking.application.port.`in`.AuthenticateUser
 import dev.maxaure.flightbooking.application.port.`in`.GetCurrentUser
 import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
+import dev.maxaure.flightbooking.application.port.`in`.PayReservation
 import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
 import dev.maxaure.flightbooking.application.port.`in`.ResendVerification
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
@@ -21,7 +22,10 @@ import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
 import dev.maxaure.flightbooking.application.port.out.LoginAttemptLimiter
+import dev.maxaure.flightbooking.application.port.out.PaymentGateway
+import dev.maxaure.flightbooking.application.port.out.PaymentRepository
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
+import dev.maxaure.flightbooking.application.port.out.ReservationPricer
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.application.port.out.RevokedTokenRepository
@@ -36,6 +40,7 @@ import dev.maxaure.flightbooking.application.usecase.user.AuthenticateUserUseCas
 import dev.maxaure.flightbooking.application.usecase.user.GetCurrentUserUseCase
 import dev.maxaure.flightbooking.application.usecase.user.UpdateProfileUseCase
 import dev.maxaure.flightbooking.application.usecase.ListMyReservationsUseCase
+import dev.maxaure.flightbooking.application.usecase.PayReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.RevokeTokenUseCase
 import dev.maxaure.flightbooking.application.usecase.ReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.SearchAirportsUseCase
@@ -132,4 +137,13 @@ internal class UseCaseConfig {
     @Bean
     fun listMyReservations(reservations: ReservationRepository): ListMyReservations =
         ListMyReservationsUseCase(reservations)
+
+    @Bean
+    fun payReservation(
+        reservations: ReservationRepository,
+        payments: PaymentRepository,
+        pricer: ReservationPricer,
+        gateway: PaymentGateway,
+        clock: Clock,
+    ): PayReservation = PayReservationUseCase(reservations, payments, pricer, gateway, clock)
 }

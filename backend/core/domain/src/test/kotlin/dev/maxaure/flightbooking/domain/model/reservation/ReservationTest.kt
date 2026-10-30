@@ -8,6 +8,7 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 
 class ReservationTest {
 
@@ -42,5 +43,30 @@ class ReservationTest {
         assertFailsWith<IllegalArgumentException> {
             Reservation.hold(flightId, listOf(seats[0], seats[0]), now, userId = userId)
         }
+    }
+
+    @Test
+    fun `when a pending hold is paid then it becomes confirmed without an expiry`() {
+        val hold = Reservation.hold(flightId, seats, now, userId = userId)
+
+        val paid = hold.pay(now.plus(Duration.ofMinutes(5)))
+
+        assertEquals(ReservationStatus.CONFIRMED, paid.status)
+        assertNull(paid.expiresAt)
+        assertEquals(seats, paid.seats)
+    }
+
+    @Test
+    fun `when a hold is paid after it expired then it is rejected`() {
+        val hold = Reservation.hold(flightId, seats, now, userId = userId)
+
+        assertFailsWith<ConflictException> { hold.pay(now.plus(Duration.ofMinutes(15))) }
+    }
+
+    @Test
+    fun `when a cancelled hold is paid then it is rejected`() {
+        val cancelled = Reservation.hold(flightId, seats, now, userId = userId).cancel()
+
+        assertFailsWith<ConflictException> { cancelled.pay(now.plus(Duration.ofMinutes(1))) }
     }
 }

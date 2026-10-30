@@ -208,6 +208,16 @@ Local-first, cloud-ready:
 4. The frontend builds to static files (`npm run build`) and can be served by any static host or a CDN, pointing `/api` at the backend.
 5. Containerizing the backend and frontend is deliberately out of scope for now.
 
+## Fake payments
+
+`PAYMENT_PROVIDER=fake` (the default) swaps in a deterministic gateway, so no real PSP is called:
+
+- `4242 4242 4242 4242` — approved
+- `4000 0000 0000 0002` — declined by the issuer
+- `4000 0000 0000 9995` — declined for insufficient funds
+
+`POST /api/v1/reservations/{id}/payment` takes `idempotencyKey`, `cardNumber` and `cardHolder`, and confirms the reservation on approval. Replaying a key returns the stored payment instead of charging again; paying a confirmed or expired hold answers `409`.
+
 ## Testing with Podman
 
 Testcontainers expects a Docker-compatible socket. With Podman:
@@ -222,6 +232,7 @@ Integration tests start their own PostgreSQL container. They live in `backend/bo
 
 - `AuthTest` — register, duplicate email, malformed email, login, wrong password, unknown email, email case, short password, tampered cookie, logout, token expiry
 - `ReservationTest` — a user only sees their own reservations, unknown user gets an empty list, cross-user cancel returns `404`
+- `PaymentTest` — paying a hold with the fake gateway: approval and sold seats, decline, idempotent replay, key reuse across reservations, cross-user payment, expired hold
 
 The catalogue is seeded per test by `CatalogueTestSeed`, which inserts airports, one flight, a fare class and a seat inventory directly through SQL. The tests never depend on feed ingestion.
 
@@ -249,7 +260,7 @@ cd backend
 - [x] Frontend auth flow and "My reservations" page (React + Vite + TypeScript)
 - [x] E-mail verification on registration, password reset, optional TOTP two-factor
 - [ ] Pricing engine (fare classes, taxes, price snapshot on reservation)
-- [ ] Payments with idempotency keys
+- [x] Payments behind a fake gateway, with idempotency keys
 - [ ] Events: transactional outbox → Kafka → e-mail (Mailpit)
 - [ ] Check-in and signed boarding passes
 - [x] Tests with Testcontainers (written alongside features)
