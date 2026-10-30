@@ -45,7 +45,7 @@ class ReservationUseCaseTest {
         User.verified(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
 
     private fun seats(vararg numbers: String) =
-        numbers.map { HoldSeatRequest(SeatNumber.of(it), PassengerType.OTHER, "Passenger", it) }
+        numbers.map { HoldSeatRequest(SeatNumber.of(it), PassengerType.OTHER, "Passenger", it, passportNumber = "X1234567") }
 
     @Test
     fun `when a seat is already held then a second hold of the same seat is rejected and the first survives`() {

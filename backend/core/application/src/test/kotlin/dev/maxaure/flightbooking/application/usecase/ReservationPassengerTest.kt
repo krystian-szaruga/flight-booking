@@ -47,10 +47,11 @@ class ReservationPassengerTest {
     ) = User.verified(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
         .copy(firstName = firstName, lastName = lastName)
 
-    private fun self(seat: String) = HoldSeatRequest(SeatNumber.of(seat), PassengerType.SELF)
+    private fun self(seat: String) =
+        HoldSeatRequest(SeatNumber.of(seat), PassengerType.SELF, passportNumber = "X1234567")
 
     private fun other(seat: String, firstName: String?, lastName: String?) =
-        HoldSeatRequest(SeatNumber.of(seat), PassengerType.OTHER, firstName, lastName)
+        HoldSeatRequest(SeatNumber.of(seat), PassengerType.OTHER, firstName, lastName, passportNumber = "X1234567")
 
     @Test
     fun `when a seat is booked for the account holder then the passenger name comes from the profile`() {
