@@ -6,6 +6,7 @@ import dev.maxaure.flightbooking.application.port.out.HoldOutcome
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
+import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
@@ -36,19 +37,30 @@ class ReservationUseCase(
         }
     }
 
-    private fun resolvePassenger(user: User, seat: HoldSeatRequest): PassengerSeat = when (seat.passengerType) {
-        PassengerType.SELF -> {
-            val first = user.firstName
-            val last = user.lastName
-            if (first.isNullOrBlank() || last.isNullOrBlank()) throw ProfileIncomplete()
-            PassengerSeat(seat.seatNumber, first, last)
-        }
+    private fun resolvePassenger(user: User, seat: HoldSeatRequest): PassengerSeat {
+        val passport = seat.passportNumber?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw InvalidDomainValueException("A passport number is required for every passenger")
+        val phone = seat.phoneNumber?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw InvalidDomainValueException("A phone number is required for every passenger")
+        val dateOfBirth = seat.dateOfBirth
+            ?: throw InvalidDomainValueException("A date of birth is required for every passenger")
+        return when (seat.passengerType) {
+            PassengerType.SELF -> {
+                val first = user.firstName
+                val last = user.lastName
+                if (first.isNullOrBlank() || last.isNullOrBlank()) throw ProfileIncomplete()
+                PassengerSeat(seat.seatNumber, first, last, passportNumber = passport, phoneNumber = phone, dateOfBirth = dateOfBirth)
+            }
 
-        PassengerType.OTHER -> PassengerSeat(
-            seat.seatNumber,
-            seat.firstName?.trim().orEmpty(),
-            seat.lastName?.trim().orEmpty(),
-        )
+            PassengerType.OTHER -> PassengerSeat(
+                seat.seatNumber,
+                seat.firstName?.trim().orEmpty(),
+                seat.lastName?.trim().orEmpty(),
+                passportNumber = passport,
+                phoneNumber = phone,
+                dateOfBirth = dateOfBirth,
+            )
+        }
     }
 
     override fun cancel(userId: UserId, reservationId: UUID): Reservation {
@@ -70,6 +82,22 @@ class ReservationUseCase(
                 ?: throw NotFoundException("Reservation $reservationId does not exist")
         }
         return reservations.releaseSeatSubset(reservationId, requested.toList())
+            ?: throw NotFoundException("Reservation $reservationId does not exist")
+    }
+
+    override fun updatePassengers(userId: UserId, reservationId: UUID, seats: List<HoldSeatRequest>): Reservation {
+        val reservation = ownedOrMissing(userId, reservationId)
+        if (reservation.status != ReservationStatus.PENDING) {
+            throw ConflictException("Reservation $reservationId is ${reservation.status.name.lowercase()} and cannot be edited")
+        }
+        val user = users.findById(userId) ?: throw NotFoundException("User $userId does not exist")
+        val passengers = seats.map { resolvePassenger(user, it) }
+        val expected = reservation.seats.map { it.seatNumber }.toSet()
+        val received = passengers.map { it.seatNumber }.toSet()
+        if (received != expected) {
+            throw InvalidDomainValueException("Passenger details must cover exactly the held seats")
+        }
+        return reservations.updatePassengers(reservationId, passengers)
             ?: throw NotFoundException("Reservation $reservationId does not exist")
     }
 

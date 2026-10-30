@@ -26,18 +26,24 @@ internal class CatalogueController(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate?,
         @RequestParam(required = false) cabin: String?,
         @RequestParam(required = false, defaultValue = "Europe/Warsaw") zone: ZoneId,
+        @RequestParam(required = false) currency: String?,
     ): List<FlightSummaryResponse> =
-        flightSearch.search(origin, destination, from, to ?: from, zone, cabin).map(FlightSummaryResponse::from)
+        flightSearch.search(origin, destination, from, to ?: from, zone, cabin, currency)
+            .map(FlightSummaryResponse::from)
 
     @GetMapping("/{flightId}/seats")
-    fun seatMap(@PathVariable flightId: UUID): SeatMapResponse =
-        flightSearch.seatMap(flightId)
+    fun seatMap(
+        @PathVariable flightId: UUID,
+        @RequestParam(required = false) currency: String?,
+    ): SeatMapResponse =
+        flightSearch.seatMap(flightId, currency)
             ?.let(SeatMapResponse::from)
             ?: throw NotFoundException("Flight $flightId is not in the catalogue")
 
     @GetMapping("/deals")
     fun deals(
         @RequestParam(required = false, defaultValue = "6") limit: Int,
+        @RequestParam(required = false) currency: String?,
     ): List<DealResponse> =
-        flightSearch.deals(limit).map(DealResponse::from)
+        flightSearch.deals(limit, currency).map(DealResponse::from)
 }

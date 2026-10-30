@@ -109,6 +109,11 @@ class ListMyReservationsUseCaseTest {
         override fun releaseSeatSubset(reservationId: UUID, seatNumbers: List<String>): Reservation? =
             error("Not used by these tests")
 
+        override fun updatePassengers(reservationId: UUID, seats: List<PassengerSeat>): Reservation? {
+            val current = stored[reservationId] ?: return null
+            return current.copy(seats = seats).also { stored[reservationId] = it }
+        }
+
         override fun confirm(reservationId: UUID): Reservation? = error("Not used by these tests")
 
         override fun findExpired(at: Instant, limit: Int): List<Reservation> =

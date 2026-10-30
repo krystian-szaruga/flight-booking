@@ -3,15 +3,17 @@ import { Link } from 'react-router-dom'
 import { ApiError, getDeals } from '../api/client'
 import type { DealResponse } from '../api/types'
 import { DealCard } from '../components/DealCard'
+import { useCurrency } from '../currency/CurrencyContext'
 
 export function LandingPage() {
+  const { currency } = useCurrency()
   const [deals, setDeals] = useState<DealResponse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
 
-    getDeals(6, controller.signal)
+    getDeals(6, currency, controller.signal)
       .then(setDeals)
       .catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return
@@ -19,7 +21,7 @@ export function LandingPage() {
       })
 
     return () => controller.abort()
-  }, [])
+  }, [currency])
 
   return (
     <section>

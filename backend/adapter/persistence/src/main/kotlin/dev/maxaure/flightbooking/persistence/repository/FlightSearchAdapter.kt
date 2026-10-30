@@ -85,7 +85,7 @@ internal class FlightSearchAdapter(
     override fun deals(query: DealsQuery): List<FlightDeal> =
         search.findDeals(
             from = query.from,
-            pageable = PageRequest.of(0, query.limit),
+            pageable = PageRequest.of(0, DEAL_CANDIDATES),
         ).map { row ->
             FlightDeal(
                 flightId = row.flightId,
@@ -114,4 +114,8 @@ internal class FlightSearchAdapter(
         fareClassId = seat.fareClass.id,
         status = SeatStatus.valueOf(seat.status),
     )
+
+    private companion object {
+        const val DEAL_CANDIDATES = 200
+    }
 }

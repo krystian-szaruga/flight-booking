@@ -18,6 +18,7 @@ internal class ReservationRepositoryAdapter(
     private val reservations: SpringReservationJpaRepository,
     private val reservationSeats: SpringReservationSeatJpaRepository,
     private val transactions: TransactionTemplate,
+    private val passportCipher: PassportCipher,
 ) : ReservationRepository {
 
     override fun findById(id: UUID): Reservation? = transactions.execute { load(id) }
@@ -54,10 +55,11 @@ internal class ReservationRepositoryAdapter(
                     reservationId = reservation.id,
                     flightSeatId = byNumber.getValue(seat.seatNumber.value).id,
                     seat = seat,
+                    passportCipher = passportCipher,
                 )
             },
         )
-        HoldOutcome.Held(reservation)
+        HoldOutcome.Held(load(reservation.id) ?: reservation)
     }
 
     override fun releaseSeats(reservationId: UUID): Reservation? = transactions.execute {
@@ -94,8 +96,28 @@ internal class ReservationRepositoryAdapter(
             updated
         }
 
-    override fun confirm(reservationId: UUID): Reservation? = transactions.execute {
-        val locked = reservations.lockById(reservationId) ?: return@execute null
+    override fun updatePassengers(reservationId: UUID, seats: List<PassengerSeat>): Reservation? =
+        transactions.execute {
+            reservations.lockById(reservationId) ?: return@execute null
+            val current = load(reservationId) ?: return@execute null
+            if (current.status != ReservationStatus.PENDING) return@execute null
+            val numbers = heldSeatNumbers(reservationId)
+            val links = reservationSeats.findByReservationId(reservationId)
+                .associateBy { numbers[it.flightSeatId] }
+            seats.forEach { seat ->
+                val link = links[seat.seatNumber.value] ?: return@execute null
+                link.firstName = seat.firstName
+                link.lastName = seat.lastName
+                link.passportNumberCiphertext = seat.passportNumber?.let(passportCipher::encrypt)
+                link.passportNumberLast4 = seat.passportNumber?.let(passportCipher::last4)
+                link.phoneNumberCiphertext = seat.phoneNumber?.let(passportCipher::encrypt)
+                link.phoneNumberLast4 = seat.phoneNumber?.let(passportCipher::last4)
+                link.dateOfBirth = seat.dateOfBirth
+            }
+            load(reservationId)
+        }
+
+    override fun confirm(reservationId: UUID): Reservation? = transactions.execute {        val locked = reservations.lockById(reservationId) ?: return@execute null
         val current = load(reservationId) ?: return@execute null
         val confirmed = current.pay(clockNow())
         locked.status = confirmed.status.name

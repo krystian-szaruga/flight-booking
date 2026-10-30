@@ -18,6 +18,7 @@ import dev.maxaure.flightbooking.persistence.repository.AirportRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.FlightRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.FlightSearchAdapter
 import dev.maxaure.flightbooking.persistence.repository.IngestionRunRepositoryAdapter
+import dev.maxaure.flightbooking.persistence.repository.PassportCipher
 import dev.maxaure.flightbooking.persistence.repository.PendingRegistrationAdapter
 import dev.maxaure.flightbooking.persistence.repository.PaymentRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.ReservationPricerAdapter
@@ -39,6 +40,7 @@ import dev.maxaure.flightbooking.persistence.repository.SpringUserJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.TransactionalRecordWriter
 import dev.maxaure.flightbooking.persistence.repository.UserRepositoryAdapter
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
@@ -86,11 +88,17 @@ internal class PersistenceConfig {
         reservations: SpringReservationJpaRepository,
         reservationSeats: SpringReservationSeatJpaRepository,
         transactions: PlatformTransactionManager,
+        passportCipher: PassportCipher,
     ): ReservationRepository = ReservationRepositoryAdapter(
         reservations,
         reservationSeats,
         TransactionTemplate(transactions),
+        passportCipher,
     )
+
+    @Bean
+    fun passportCipher(@Value("\${app.security.passport.encryption-key}") encryptionKey: String): PassportCipher =
+        PassportCipher(encryptionKey)
 
     @Bean
     fun reservationPricer(reservationSeats: SpringReservationSeatJpaRepository): ReservationPricer =

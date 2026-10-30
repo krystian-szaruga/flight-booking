@@ -16,9 +16,10 @@ interface SearchFlights {
         to: LocalDate,
         zone: ZoneId,
         cabin: String? = null,
+        currency: String? = null,
     ): List<FlightMatch>
 
-    fun seatMap(flightId: UUID): SeatMap?
+    fun seatMap(flightId: UUID, currency: String? = null): SeatMap?
 
-    fun deals(limit: Int = 6): List<FlightDeal>
+    fun deals(limit: Int = 6, currency: String? = null): List<FlightDeal>
 }

@@ -1,8 +1,14 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { ReservationResponse } from '../api/types'
 import { useConfirm } from './confirm/ConfirmProvider'
 import { HoldSeatList } from './HoldSeatList'
 import { formatRemaining, useRemainingSeconds } from './useRemainingSeconds'
+
+const money = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
 
 export function SeatHold({
   hold,
@@ -16,7 +22,8 @@ export function SeatHold({
   onCancelSeats: (reservationId: string, seats: string[]) => void
 }) {
   const seconds = useRemainingSeconds(hold.expiresAt ?? null)
-  const expired = seconds === 0
+  const confirmed = hold.status === 'CONFIRMED'
+  const expired = !confirmed && seconds === 0
   const [picked, setPicked] = useState<string[]>([])
   const confirm = useConfirm()
 
@@ -50,11 +57,18 @@ export function SeatHold({
       <div className="passenger-row-head">
         <strong>{hold.seats.map((seat) => seat.seat).join(', ')}</strong>
         <span className="muted">
-          {expired
-            ? 'Expired'
-            : `Pay within ${formatRemaining(seconds ?? 0)} or the seats are released.`}
+          {confirmed
+            ? 'Paid and confirmed.'
+            : expired
+              ? 'Expired'
+              : `Pay within ${formatRemaining(seconds ?? 0)} or the seats are released.`}
         </span>
       </div>
+      {confirmed && hold.paid && (
+        <p className="muted">
+          Paid {money.format(hold.paid.amount)} {hold.paid.currency} · card •••• {hold.paid.cardLast4}
+        </p>
+      )}
       <HoldSeatList
         seats={hold.seats}
         picked={picked}
@@ -73,9 +87,27 @@ export function SeatHold({
               ? 'Release selected'
               : `Release selected (${picked.length})`}
           </button>
-          <button type="button" className="link-button" disabled={busy} onClick={cancelAll}>
-            Release all
-          </button>
+          {!confirmed && (
+            <button type="button" className="link-button" disabled={busy} onClick={cancelAll}>
+              Release all
+            </button>
+          )}
+        </div>
+      )}
+      {hold.status === 'PENDING' && !expired && (
+        <div className="payment-box">
+          {hold.price && (
+            <strong className="payment-total">
+              {money.format(hold.price.amount)} {hold.price.currency}
+            </strong>
+          )}
+          <Link
+            to={`/checkout/${encodeURIComponent(hold.reservationId)}`}
+            state={{ reservation: hold }}
+            className="button"
+          >
+            Complete payment
+          </Link>
         </div>
       )}
     </li>

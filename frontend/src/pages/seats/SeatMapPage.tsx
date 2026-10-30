@@ -2,10 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ApiError,
-  cancelReservation,
-  cancelReservationSeats,
   getSeatMap,
   holdSeats,
+  updateReservationPassengers,
 } from '../../api/client'
 import type { Cabin, HoldSeat, ReservationResponse, SeatMapResponse, SeatResponse } from '../../api/types'
 import { useAuth } from '../../auth/AuthContext'
@@ -13,7 +12,12 @@ import { isUnauthorized } from '../../auth/useRequireAuth'
 import { SignInToContinue } from '../../components/AfterAuthLink'
 import { HoldPanel } from '../../components/HoldPanel'
 import { SeatGrid } from '../../components/SeatGrid'
+import { useCurrency } from '../../currency/CurrencyContext'
 import { FareSummary, FlightHeader, SeatLegend } from './FlightHeader'
+
+interface SeatMapState {
+  edit?: { reservation: ReservationResponse; passengers: HoldSeat[] }
+}
 
 export function SeatMapPage() {
   const navigate = useNavigate()
@@ -21,8 +25,10 @@ export function SeatMapPage() {
   const { flightId } = useParams<{ flightId: string }>()
   const [params] = useSearchParams()
   const cabin = params.get('cabin') as Cabin | null
+  const edit = (location.state as SeatMapState | null)?.edit
 
   const { user, loading, expireSession } = useAuth()
+  const { currency } = useCurrency()
 
   const sendToAuth = () => {
     expireSession()
@@ -31,8 +37,9 @@ export function SeatMapPage() {
 
   const [seatMap, setSeatMap] = useState<SeatMapResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
-  const [reservations, setReservations] = useState<ReservationResponse[]>([])
+  const [selected, setSelected] = useState<ReadonlySet<string>>(
+    () => new Set(edit?.reservation.seats.map((seat) => seat.seat) ?? []),
+  )
   const [holdError, setHoldError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -44,14 +51,14 @@ export function SeatMapPage() {
       }
       setSeatMap(null)
       setError(null)
-      getSeatMap(flightId, signal)
+      getSeatMap(flightId, currency, signal)
         .then(setSeatMap)
         .catch((cause: unknown) => {
           if (cause instanceof DOMException && cause.name === 'AbortError') return
           setError(cause instanceof ApiError ? cause.message : 'Could not load the seat map.')
         })
     },
-    [flightId],
+    [flightId, currency],
   )
 
   useEffect(() => {
@@ -70,11 +77,6 @@ export function SeatMapPage() {
       return next
     })
   }
-
-  const replaceReservation = (updated: ReservationResponse) =>
-    setReservations((current) =>
-      current.map((item) => (item.reservationId === updated.reservationId ? updated : item)),
-    )
 
   const guarded = async (action: () => Promise<void>, fallback: string) => {
     setBusy(true)
@@ -95,24 +97,20 @@ export function SeatMapPage() {
   const onHold = (seats: HoldSeat[]) => {
     if (!flightId) return
     void guarded(async () => {
-      const created = await holdSeats(flightId, seats)
-      setReservations((current) => [created, ...current])
+      if (edit) {
+        const updated = await updateReservationPassengers(edit.reservation.reservationId, seats, currency)
+        navigate(`/checkout/${encodeURIComponent(updated.reservationId)}`, {
+          state: { reservation: updated, seatMap, passengers: seats },
+        })
+        return
+      }
+      const created = await holdSeats(flightId, seats, currency)
       setSelected(new Set())
-      load()
-    }, 'Could not hold those seats.')
+      navigate(`/checkout/${encodeURIComponent(created.reservationId)}`, {
+        state: { reservation: created, seatMap, passengers: seats },
+      })
+    }, edit ? 'Could not update the passengers.' : 'Could not start the purchase.')
   }
-
-  const onCancel = (reservationId: string) =>
-    void guarded(async () => {
-      replaceReservation(await cancelReservation(reservationId))
-      load()
-    }, 'Could not cancel the hold.')
-
-  const onCancelSeats = (reservationId: string, seats: string[]) =>
-    void guarded(async () => {
-      replaceReservation(await cancelReservationSeats(reservationId, seats))
-      load()
-    }, 'Could not release those seats.')
 
   const onReleaseSeat = (seat: string) =>
     setSelected((current) => {
@@ -161,12 +159,10 @@ export function SeatMapPage() {
       )}
       <HoldPanel
         selected={selectedSeats}
-        reservations={reservations}
+        initialPassengers={edit?.passengers}
         busy={busy}
         error={holdError}
         onHold={onHold}
-        onCancel={onCancel}
-        onCancelSeats={onCancelSeats}
         onReleaseSeat={onReleaseSeat}
       />
     </section>

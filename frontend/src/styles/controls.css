@@ -2,24 +2,61 @@ input,
 select,
 button {
   font: inherit;
-  padding: 0.5rem 0.6rem;
+  padding: 0.55rem 0.7rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 10px;
   background: var(--surface);
   color: var(--text);
   accent-color: var(--accent);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+input:disabled,
+select:disabled {
+  background: color-mix(in srgb, var(--hover) 70%, transparent);
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 button[type='submit'],
 .button {
-  background: var(--accent);
-  border-color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 1px solid transparent;
   color: var(--text-on-accent);
   cursor: pointer;
   text-decoration: none;
-  padding: 0.5rem 0.9rem;
-  border-radius: 6px;
+  padding: 0.6rem 1.05rem;
+  border-radius: 10px;
   font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 28%, transparent);
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+}
+
+button[type='submit']:hover:not(:disabled),
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 34%, transparent);
+  filter: saturate(1.08);
+}
+
+button[type='submit']:disabled,
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .link-button {
@@ -29,6 +66,7 @@ button[type='submit'],
   padding: 0;
   cursor: pointer;
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .link-button:disabled {

@@ -1,37 +1,40 @@
 import { useState } from 'react'
-import type { HoldSeat, PassengerType, ReservationResponse, SeatResponse } from '../api/types'
+import type { HoldSeat, PassengerType, SeatResponse } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { SeatEditor } from './SeatEditor'
-import { SeatHold } from './SeatHold'
 import type { PassengerDraft } from './passengerDraft'
 
 interface HoldPanelProps {
   selected: SeatResponse[]
-  reservations: ReservationResponse[]
   busy: boolean
   error: string | null
   onHold: (seats: HoldSeat[]) => void
-  onCancel: (reservationId: string) => void
-  onCancelSeats: (reservationId: string, seats: string[]) => void
   onReleaseSeat: (seat: string) => void
 }
 
 export function HoldPanel({
   selected,
-  reservations,
+  initialPassengers,
   busy,
   error,
   onHold,
-  onCancel,
-  onCancelSeats,
   onReleaseSeat,
-}: HoldPanelProps) {
+}: HoldPanelProps & { initialPassengers?: HoldSeat[] }) {
   const { user } = useAuth()
-  const [drafts, setDrafts] = useState<Record<string, PassengerDraft>>({})
-
-  const activeHolds = reservations.filter(
-    (item) => item.status === 'PENDING' || item.status === 'CONFIRMED',
-  )
+  const [drafts, setDrafts] = useState<Record<string, PassengerDraft>>(() => {
+    const initial: Record<string, PassengerDraft> = {}
+    for (const passenger of initialPassengers ?? []) {
+      initial[passenger.seat] = {
+        passengerType: passenger.passengerType,
+        firstName: passenger.firstName ?? '',
+        lastName: passenger.lastName ?? '',
+        passportNumber: passenger.passportNumber ?? '',
+        phoneNumber: passenger.phoneNumber ?? '',
+        dateOfBirth: passenger.dateOfBirth ?? '',
+      }
+    }
+    return initial
+  })
 
   const choose = (seat: string, passengerType: PassengerType) =>
     setDrafts((current) => ({
@@ -40,6 +43,9 @@ export function HoldPanel({
         passengerType,
         firstName: current[seat]?.firstName ?? '',
         lastName: current[seat]?.lastName ?? '',
+        passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
       },
     }))
 
@@ -50,6 +56,48 @@ export function HoldPanel({
         passengerType: current[seat]?.passengerType ?? 'OTHER',
         firstName: field === 'firstName' ? value : (current[seat]?.firstName ?? ''),
         lastName: field === 'lastName' ? value : (current[seat]?.lastName ?? ''),
+        passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
+      },
+    }))
+
+  const updatePassport = (seat: string, value: string) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType: current[seat]?.passengerType ?? 'OTHER',
+        firstName: current[seat]?.firstName ?? '',
+        lastName: current[seat]?.lastName ?? '',
+        passportNumber: value,
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
+      },
+    }))
+
+  const updatePhone = (seat: string, value: string) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType: current[seat]?.passengerType ?? 'OTHER',
+        firstName: current[seat]?.firstName ?? '',
+        lastName: current[seat]?.lastName ?? '',
+        passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: value,
+        dateOfBirth: current[seat]?.dateOfBirth ?? '',
+      },
+    }))
+
+  const updateBirth = (seat: string, value: string) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType: current[seat]?.passengerType ?? 'OTHER',
+        firstName: current[seat]?.firstName ?? '',
+        lastName: current[seat]?.lastName ?? '',
+        passportNumber: current[seat]?.passportNumber ?? '',
+        phoneNumber: current[seat]?.phoneNumber ?? '',
+        dateOfBirth: value,
       },
     }))
 
@@ -65,41 +113,22 @@ export function HoldPanel({
           busy={busy}
           onChoose={choose}
           onName={updateName}
+          onPassport={updatePassport}
+          onPhone={updatePhone}
+          onBirth={updateBirth}
           onRemove={onReleaseSeat}
           onHold={onHold}
         />
       )}
 
-      {activeHolds.length > 0 && (
-        <section className="hold-panel" aria-live="polite">
-          <h2>{activeHolds.length === 1 ? 'Seat on hold' : 'Seats on hold'}</h2>
-          <ul className="hold-seats">
-            {activeHolds.map((hold) => (
-              <SeatHold
-                key={hold.reservationId}
-                hold={hold}
-                busy={busy}
-                onCancel={onCancel}
-                onCancelSeats={onCancelSeats}
-              />
-            ))}
-          </ul>
-          {error && <p className="error">{error}</p>}
-        </section>
-      )}
-
       {selected.length === 0 ? (
-        <>
-          <p className="muted">
-            Select {activeHolds.length > 0 ? 'more ' : ''}seats on the map to hold them.
-          </p>
-          {error && <p className="error">{error}</p>}
-        </>
+        <p className="muted">Select seats on the map to buy them.</p>
       ) : (
         <p className="muted">
           Selected: <strong>{selected.map((seat) => seat.seat).join(', ')}</strong>
         </p>
       )}
+      {error && <p className="error">{error}</p>}
     </>
   )
 }

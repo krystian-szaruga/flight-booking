@@ -130,9 +130,14 @@
   margin-top: 1.5rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
+  border-radius: 18px;
+  padding: 1.25rem 1.4rem;
   max-width: 34rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.seat-buy {
+  width: 100%;
 }
 
 .hold-seats {
@@ -229,6 +234,30 @@
   cursor: default;
 }
 
+.passport-field,
+.passenger-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.passport-field input,
+.passenger-detail-field input {
+  width: 100%;
+  min-width: 0;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.passenger-name-fields input[aria-invalid='true'],
+.passenger-detail-field input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
 .hold-seat-picker {
   list-style: none;
   padding: 0;
@@ -249,4 +278,24 @@
 .hold-seat-picker input {
   flex: 0 0 auto;
   margin: 0;
+}
+
+.payment-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.payment-box select {
+  flex: 1;
+  min-width: 0;
+}
+
+.payment-total {
+  margin-left: auto;
+  white-space: nowrap;
 }

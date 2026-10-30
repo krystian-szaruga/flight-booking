@@ -1,5 +1,6 @@
 package dev.maxaure.flightbooking.web.reservation
 
+import dev.maxaure.flightbooking.application.port.`in`.DescribeReservation
 import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
 import dev.maxaure.flightbooking.application.port.`in`.PayReservation
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
@@ -14,8 +15,10 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
@@ -26,24 +29,50 @@ internal class ReservationController(
     private val reservations: ReserveSeats,
     private val myReservations: ListMyReservations,
     private val payments: PayReservation,
+    private val descriptions: DescribeReservation,
 ) {
 
     @GetMapping
-    fun list(@CurrentUser userId: UserId): List<ReservationResponse> =
-        myReservations.list(userId).map(ReservationResponse::from)
+    fun list(
+        @CurrentUser userId: UserId,
+        @RequestParam(required = false) currency: String?,
+    ): List<ReservationResponse> =
+        myReservations.list(userId).map { ReservationResponse.from(descriptions.describe(it, currency)) }
 
     @PostMapping("/flights/{flightId}")
     @ResponseStatus(HttpStatus.CREATED)
     fun hold(
         @CurrentUser userId: UserId,
         @PathVariable flightId: UUID,
+        @RequestParam(required = false) currency: String?,
         @RequestBody @Valid request: HoldSeatsRequest,
     ): ReservationResponse =
         ReservationResponse.from(
-            reservations.hold(
-                userId = userId,
-                flightId = flightId,
-                seats = request.seats.map { it.toRequest() },
+            descriptions.describe(
+                reservations.hold(
+                    userId = userId,
+                    flightId = flightId,
+                    seats = request.seats.map { it.toRequest() },
+                ),
+                currency,
+            ),
+        )
+
+    @PutMapping("/{reservationId}/passengers")
+    fun updatePassengers(
+        @CurrentUser userId: UserId,
+        @PathVariable reservationId: UUID,
+        @RequestParam(required = false) currency: String?,
+        @RequestBody @Valid request: HoldSeatsRequest,
+    ): ReservationResponse =
+        ReservationResponse.from(
+            descriptions.describe(
+                reservations.updatePassengers(
+                    userId = userId,
+                    reservationId = reservationId,
+                    seats = request.seats.map { it.toRequest() },
+                ),
+                currency,
             ),
         )
 
@@ -51,17 +80,21 @@ internal class ReservationController(
     fun cancel(
         @CurrentUser userId: UserId,
         @PathVariable reservationId: UUID,
+        @RequestParam(required = false) currency: String?,
     ): ReservationResponse =
-        ReservationResponse.from(reservations.cancel(userId, reservationId))
+        ReservationResponse.from(descriptions.describe(reservations.cancel(userId, reservationId), currency))
 
-    @DeleteMapping("/{reservationId}/seats")
-    fun cancelSeats(
+    @DeleteMapping("/{reservationId}/seats")    fun cancelSeats(
         @CurrentUser userId: UserId,
         @PathVariable reservationId: UUID,
+        @RequestParam(required = false) currency: String?,
         @RequestBody @Valid request: CancelSeatsRequest,
     ): ReservationResponse =
         ReservationResponse.from(
-            reservations.cancelSeats(userId, reservationId, request.seats.map(SeatNumber::of)),
+            descriptions.describe(
+                reservations.cancelSeats(userId, reservationId, request.seats.map(SeatNumber::of)),
+                currency,
+            ),
         )
 
     @PostMapping("/{reservationId}/payment")

@@ -5,6 +5,7 @@ import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 enum class PassengerType {
@@ -16,6 +17,11 @@ data class PassengerSeat(
     val seatNumber: SeatNumber,
     val firstName: String,
     val lastName: String,
+    val passportNumber: String? = null,
+    val passportNumberLast4: String? = null,
+    val phoneNumber: String? = null,
+    val phoneNumberLast4: String? = null,
+    val dateOfBirth: LocalDate? = null,
 ) {
     val fullName: String
         get() = "$firstName $lastName"
@@ -24,7 +30,16 @@ data class PassengerSeat(
         if (firstName.isBlank() || lastName.isBlank()) {
             throw InvalidDomainValueException("Passenger first and last name must both be provided")
         }
+        if (passportNumber != null && passportNumber.isBlank()) {
+            throw InvalidDomainValueException("Passport number must not be blank when provided")
+        }
+        if (phoneNumber != null && phoneNumber.isBlank()) {
+            throw InvalidDomainValueException("Phone number must not be blank when provided")
+        }
     }
+
+    override fun toString(): String =
+        "PassengerSeat(seatNumber=$seatNumber, firstName=$firstName, lastName=$lastName, passportNumber=${passportNumberLast4?.let { "••••$it" } ?: "none"}, phoneNumber=${phoneNumberLast4?.let { "••••$it" } ?: "none"})"
 }
 
 enum class ReservationStatus {

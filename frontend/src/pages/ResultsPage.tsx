@@ -3,10 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, searchFlights } from '../api/client'
 import type { Cabin, FlightSummaryResponse } from '../api/types'
 import { FlightCard } from '../components/FlightCard'
+import { useCurrency } from '../currency/CurrencyContext'
 import { dayLabel, groupByDay } from './search/searchCriteria'
 
 export function ResultsPage() {
   const [params] = useSearchParams()
+  const { currency } = useCurrency()
   const origin = params.get('origin') ?? ''
   const destination = params.get('destination') ?? ''
   const from = params.get('from') ?? params.get('date') ?? ''
@@ -26,7 +28,7 @@ export function ResultsPage() {
     setFlights(null)
     setError(null)
 
-    searchFlights({ origin, destination, from, to, cabin }, controller.signal)
+    searchFlights({ origin, destination, from, to, cabin, currency }, controller.signal)
       .then(setFlights)
       .catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return
@@ -34,7 +36,7 @@ export function ResultsPage() {
       })
 
     return () => controller.abort()
-  }, [origin, destination, from, to, cabin])
+  }, [origin, destination, from, to, cabin, currency])
 
   const days = groupByDay(flights ?? [])
 

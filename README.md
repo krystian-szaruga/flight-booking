@@ -218,6 +218,18 @@ Local-first, cloud-ready:
 
 `POST /api/v1/reservations/{id}/payment` takes `idempotencyKey`, `cardNumber` and `cardHolder`, and confirms the reservation on approval. Replaying a key returns the stored payment instead of charging again; paying a confirmed or expired hold answers `409`.
 
+## Security notes
+
+Passport numbers, phone numbers and dates of birth are required for every passenger on a reservation seat. `PassportCipher` encrypts passport and phone numbers with AES-256-GCM using a random 12-byte IV per value and stores `v1:<iv>:<ciphertext>` in `reservation_seat.passport_number_ciphertext` and `reservation_seat.phone_number_ciphertext`. Only the last four digits are kept in plaintext (`passport_number_last4`, `phone_number_last4`), the API returns `••••1234`, and reads never decrypt. Dates of birth are stored in `reservation_seat.date_of_birth` and returned as ISO dates. Phone numbers must start with `+` followed by 7–15 digits, for example `+48600123456`. The key comes from `PASSPORT_ENCRYPTION_KEY` (Base64-encoded 32 bytes) and must never be committed; see `infra/.env.example`. The `v1:` prefix leaves room for key rotation.
+
+This is a local, single-key setup. Generate the key with `export PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32)` before starting the backend. A production deployment would use KMS/HSM-backed envelope encryption, per-tenant keys, a retention/purge policy, audit logging on decrypt, and a separate service that owns sensitive documents. Passport and phone values must never be logged, put in exception messages, or included in snapshots.
+
+## Currency
+
+`GET /api/v1/currencies` returns the default and supported codes. Prices are converted server-side when a request carries `?currency=XXX` (`/flights`, `/flights/deals`, `/flights/{id}/seats` and the reservation endpoints), and payments are charged in the selected currency.
+
+Rates live in `app.currency` (`base`, `default`, `rates`) and are static demo values — no FX provider is called. `CurrencyConverter` is the port; to plug a real FX API, add one adapter bean and leave the use cases untouched. The header selector persists the choice in `localStorage`.
+
 ## Testing with Podman
 
 Testcontainers expects a Docker-compatible socket. With Podman:

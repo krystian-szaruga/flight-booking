@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ApiError, searchAirports, searchFlights } from '../../api/client'
 import type { AirportSummary, Cabin, FlightSummaryResponse } from '../../api/types'
+import { useCurrency } from '../../currency/CurrencyContext'
 import { flexibilityOf, tomorrow, withRange } from './searchCriteria'
 import { SearchForm } from './SearchForm'
 import { SearchResults } from './SearchResults'
@@ -28,6 +29,7 @@ function useAirportByCode(code: string): [AirportSummary | null, (airport: Airpo
 
 export function SearchPage() {
   const [params, setParams] = useSearchParams()
+  const { currency } = useCurrency()
 
   const originCode = params.get('origin') ?? ''
   const destinationCode = params.get('destination') ?? ''
@@ -58,7 +60,7 @@ export function SearchPage() {
     setFlightsError(null)
 
     searchFlights(
-      { origin: originCode, destination: destinationCode, from, to, cabin: cabin || undefined },
+      { origin: originCode, destination: destinationCode, from, to, cabin: cabin || undefined, currency },
       controller.signal,
     )
       .then((results) => {
@@ -70,7 +72,7 @@ export function SearchPage() {
       })
 
     return () => controller.abort()
-  }, [searched, originCode, destinationCode, from, to, cabin])
+  }, [searched, originCode, destinationCode, from, to, cabin, currency])
 
   function submit(event: FormEvent) {
     event.preventDefault()

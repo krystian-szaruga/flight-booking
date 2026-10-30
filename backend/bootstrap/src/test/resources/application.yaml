@@ -30,6 +30,9 @@ app:
     app-name: flight-booking
     from: no-reply@flight-booking.local
     enabled: false
+  security:
+    passport:
+      encryption-key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
 
 catalogue:
   providers:

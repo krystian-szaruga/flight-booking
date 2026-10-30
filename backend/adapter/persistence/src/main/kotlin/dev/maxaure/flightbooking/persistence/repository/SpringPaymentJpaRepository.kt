@@ -7,4 +7,9 @@ import java.util.UUID
 internal interface SpringPaymentJpaRepository : JpaRepository<PaymentEntity, UUID> {
 
     fun findByIdempotencyKey(idempotencyKey: String): PaymentEntity?
+
+    fun findFirstByReservationIdAndStatusOrderByCreatedAtDesc(
+        reservationId: UUID,
+        status: String,
+    ): PaymentEntity?
 }

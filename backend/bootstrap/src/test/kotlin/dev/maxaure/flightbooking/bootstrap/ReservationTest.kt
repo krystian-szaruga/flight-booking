@@ -6,6 +6,9 @@ import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.ints.shouldBeExactly
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -77,6 +80,130 @@ class ReservationTest(
         reservationIdsOf(bolek, "bolek@example.com") shouldContainExactly listOf(bolekReservation)
     }
 
+    "when the owner cancels a reservation then it is cancelled with no price instead of failing" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        hold(anna, "anna@example.com", flightId, "12A")
+        val reservation = reservationIdsOf(anna, "anna@example.com").single()
+
+        val (status, body) = anna.delete()
+            .uri("/api/v1/reservations/$reservation")
+            .header(HttpHeaders.COOKIE, sessionCookie(anna, "anna@example.com"))
+            .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
+
+        status shouldBeExactly 200
+        body shouldContain "CANCELLED"
+        body shouldContain "\"price\":null"
+    }
+
+    "when a passenger has no passport number then the hold is rejected" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        val (status, body) = anna.post()
+            .uri("/api/v1/reservations/flights/$flightId")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.COOKIE, sessionCookie(anna, "anna@example.com"))
+            .body("""{"seats":[{"seat":"12A","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace","phoneNumber":"+48600123456","dateOfBirth":"1990-01-01"}]}""")
+            .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
+
+        status shouldBeExactly 400
+        body shouldContain "Passport number is required"
+        reservationIdsOf(anna, "anna@example.com").shouldBeEmpty()
+    }
+
+    "when a passenger gives a passport number then the hold stores it encrypted and exposes only the last four digits" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        val body = hold(anna, "anna@example.com", flightId, "12A", passportNumber = "X1234567")
+
+        body shouldContain "\"passportNumber\":\"••••4567\""
+        body shouldNotContain "X1234567"
+        val ciphertext = jdbc.queryForObject(
+            "select passport_number_ciphertext from reservation_seat",
+            String::class.java,
+        )!!
+        ciphertext shouldContain "v1:"
+        ciphertext shouldNotContain "X1234567"
+        jdbc.queryForObject("select passport_number_last4 from reservation_seat", String::class.java) shouldBe "4567"
+    }
+
+    "when a passenger gives a phone number and date of birth then the phone is stored encrypted and only the last four digits are exposed" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        val body = hold(anna, "anna@example.com", flightId, "12A")
+
+        body shouldContain "\"phoneNumber\":\"••••3456\""
+        body shouldContain "\"dateOfBirth\":\"1990-01-01\""
+        body shouldNotContain "+48600123456"
+        val ciphertext = jdbc.queryForObject(
+            "select phone_number_ciphertext from reservation_seat",
+            String::class.java,
+        )!!
+        ciphertext shouldContain "v1:"
+        ciphertext shouldNotContain "+48600123456"
+        jdbc.queryForObject("select phone_number_last4 from reservation_seat", String::class.java) shouldBe "3456"
+        jdbc.queryForObject("select date_of_birth from reservation_seat", java.sql.Date::class.java)!!.toLocalDate().toString() shouldBe "1990-01-01"
+    }
+
+    "when a phone number has letters then the hold is rejected" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        val (status, body) = anna.post()
+            .uri("/api/v1/reservations/flights/$flightId")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.COOKIE, sessionCookie(anna, "anna@example.com"))
+            .body("""{"seats":[{"seat":"12A","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace","passportNumber":"X1234567","phoneNumber":"+48abc123","dateOfBirth":"1990-01-01"}]}""")
+            .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
+
+        status shouldBeExactly 400
+        body shouldContain "Phone number must start with + and contain only digits"
+        reservationIdsOf(anna, "anna@example.com").shouldBeEmpty()
+    }
+
+    "when a date of birth is in the future then the hold is rejected" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        val (status, body) = anna.post()
+            .uri("/api/v1/reservations/flights/$flightId")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.COOKIE, sessionCookie(anna, "anna@example.com"))
+            .body("""{"seats":[{"seat":"12A","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace","passportNumber":"X1234567","phoneNumber":"+48600123456","dateOfBirth":"2999-01-01"}]}""")
+            .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
+
+        status shouldBeExactly 400
+        body shouldContain "Date of birth must be in the past"
+        reservationIdsOf(anna, "anna@example.com").shouldBeEmpty()
+    }
+
+    "when the owner edits the passenger details then the hold is updated" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val flightId = seededFlightId(jdbc)
+
+        hold(anna, "anna@example.com", flightId, "12A")
+        val reservation = reservationIdsOf(anna, "anna@example.com").single()
+
+        val (status, body) = anna.put()
+            .uri("/api/v1/reservations/$reservation/passengers")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.COOKIE, sessionCookie(anna, "anna@example.com"))
+            .body("""{"seats":[{"seat":"12A","passengerType":"OTHER","firstName":"Grace","lastName":"Hopper","passportNumber":"Y7654321","phoneNumber":"+48555123456","dateOfBirth":"1985-05-05"}]}""")
+            .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
+
+        status shouldBeExactly 200
+        body shouldContain "Grace"
+        body shouldContain "Hopper"
+        body shouldContain "\"phoneNumber\":\"••••3456\""
+        body shouldContain "\"dateOfBirth\":\"1985-05-05\""
+        jdbc.queryForObject("select first_name from reservation_seat", String::class.java) shouldBe "Grace"
+        jdbc.queryForObject("select date_of_birth from reservation_seat", java.sql.Date::class.java)!!.toLocalDate().toString() shouldBe "1985-05-05"
+    }
+
     "when several users hold seats on one flight then the listing counts match the holds" {
         val anna = clientFor(port).also { register(it, "anna@example.com") }
         val bolek = clientFor(port).also { register(it, "bolek@example.com") }
@@ -128,15 +255,17 @@ class ReservationTest(
             return response.headers.getFirst(HttpHeaders.SET_COOKIE)!!.substringBefore(';')
         }
 
-        private fun hold(client: RestClient, email: String, flightId: String, seat: String) {
+        private fun hold(client: RestClient, email: String, flightId: String, seat: String, passportNumber: String? = "X1234567"): String {
+            val passport = passportNumber?.let { ""","passportNumber":"$it"""" }.orEmpty()
             val (status, body) = client.post()
                 .uri("/api/v1/reservations/flights/$flightId")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.COOKIE, sessionCookie(client, email))
-                .body("""{"seats":[{"seat":"$seat","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace"}]}""")
+                .body("""{"seats":[{"seat":"$seat","passengerType":"OTHER","firstName":"Ada","lastName":"Lovelace"$passport,"phoneNumber":"+48600123456","dateOfBirth":"1990-01-01"}]}""")
                 .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes()) }
 
             check(status in 200..299) { "hold $seat for $email failed: HTTP $status $body" }
+            return body
         }
 
 

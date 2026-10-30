@@ -5,6 +5,7 @@ import dev.maxaure.flightbooking.domain.model.payment.Payment
 import dev.maxaure.flightbooking.persistence.mapper.PaymentMapper
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.support.TransactionTemplate
+import java.util.UUID
 
 internal class PaymentRepositoryAdapter(
     private val payments: SpringPaymentJpaRepository,
@@ -13,6 +14,11 @@ internal class PaymentRepositoryAdapter(
 
     override fun findByIdempotencyKey(key: String): Payment? =
         payments.findByIdempotencyKey(key)?.let(PaymentMapper::toDomain)
+
+    override fun findLatestApproved(reservationId: UUID): Payment? =
+        payments
+            .findFirstByReservationIdAndStatusOrderByCreatedAtDesc(reservationId, "APPROVED")
+            ?.let(PaymentMapper::toDomain)
 
     override fun save(payment: Payment): Payment = try {
         transactions.execute {
