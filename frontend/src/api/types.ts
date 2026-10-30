@@ -69,12 +69,14 @@ export interface HoldSeat {
   passengerType: PassengerType
   firstName?: string
   lastName?: string
+  passportNumber?: string
 }
 
 export interface GroundedSeat {
   seat: string
   firstName: string
   lastName: string
+  passportNumber?: string | null
 }
 
 export interface ReservationResponse {

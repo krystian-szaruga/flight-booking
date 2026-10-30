@@ -51,6 +51,9 @@ app:
     provider: ${PAYMENT_PROVIDER:fake}
   currency:
     default: ${CURRENCY_DEFAULT:PLN}
+  security:
+    passport:
+      encryption-key: ${PASSPORT_ENCRYPTION_KEY}
 
 management:
   endpoints:

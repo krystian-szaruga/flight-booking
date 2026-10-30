@@ -29,6 +29,7 @@ export function HoldPanel({
         passengerType,
         firstName: current[seat]?.firstName ?? '',
         lastName: current[seat]?.lastName ?? '',
+        passportNumber: current[seat]?.passportNumber ?? '',
       },
     }))
 
@@ -39,6 +40,18 @@ export function HoldPanel({
         passengerType: current[seat]?.passengerType ?? 'OTHER',
         firstName: field === 'firstName' ? value : (current[seat]?.firstName ?? ''),
         lastName: field === 'lastName' ? value : (current[seat]?.lastName ?? ''),
+        passportNumber: current[seat]?.passportNumber ?? '',
+      },
+    }))
+
+  const updatePassport = (seat: string, value: string) =>
+    setDrafts((current) => ({
+      ...current,
+      [seat]: {
+        passengerType: current[seat]?.passengerType ?? 'OTHER',
+        firstName: current[seat]?.firstName ?? '',
+        lastName: current[seat]?.lastName ?? '',
+        passportNumber: value,
       },
     }))
 
@@ -54,6 +67,7 @@ export function HoldPanel({
           busy={busy}
           onChoose={choose}
           onName={updateName}
+          onPassport={updatePassport}
           onRemove={onReleaseSeat}
           onHold={onHold}
         />

@@ -24,7 +24,12 @@ internal data class ReservationResponse(
                 PaidResponse(it.amount.amount, it.amount.currency, it.cardLast4, it.createdAt)
             },
             seats = view.reservation.seats.map {
-                HeldSeatResponse(it.seatNumber.value, it.firstName, it.lastName)
+                HeldSeatResponse(
+                    it.seatNumber.value,
+                    it.firstName,
+                    it.lastName,
+                    it.passportNumberLast4?.let { last4 -> "••••$last4" },
+                )
             },
         )
     }
@@ -46,4 +51,5 @@ internal data class HeldSeatResponse(
     val seat: String,
     val firstName: String,
     val lastName: String,
+    val passportNumber: String?,
 )

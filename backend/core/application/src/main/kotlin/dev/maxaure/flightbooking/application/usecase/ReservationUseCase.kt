@@ -6,6 +6,7 @@ import dev.maxaure.flightbooking.application.port.out.HoldOutcome
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
+import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
@@ -36,19 +37,24 @@ class ReservationUseCase(
         }
     }
 
-    private fun resolvePassenger(user: User, seat: HoldSeatRequest): PassengerSeat = when (seat.passengerType) {
-        PassengerType.SELF -> {
-            val first = user.firstName
-            val last = user.lastName
-            if (first.isNullOrBlank() || last.isNullOrBlank()) throw ProfileIncomplete()
-            PassengerSeat(seat.seatNumber, first, last)
-        }
+    private fun resolvePassenger(user: User, seat: HoldSeatRequest): PassengerSeat {
+        val passport = seat.passportNumber?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw InvalidDomainValueException("A passport number is required for every passenger")
+        return when (seat.passengerType) {
+            PassengerType.SELF -> {
+                val first = user.firstName
+                val last = user.lastName
+                if (first.isNullOrBlank() || last.isNullOrBlank()) throw ProfileIncomplete()
+                PassengerSeat(seat.seatNumber, first, last, passportNumber = passport)
+            }
 
-        PassengerType.OTHER -> PassengerSeat(
-            seat.seatNumber,
-            seat.firstName?.trim().orEmpty(),
-            seat.lastName?.trim().orEmpty(),
-        )
+            PassengerType.OTHER -> PassengerSeat(
+                seat.seatNumber,
+                seat.firstName?.trim().orEmpty(),
+                seat.lastName?.trim().orEmpty(),
+                passportNumber = passport,
+            )
+        }
     }
 
     override fun cancel(userId: UserId, reservationId: UUID): Reservation {

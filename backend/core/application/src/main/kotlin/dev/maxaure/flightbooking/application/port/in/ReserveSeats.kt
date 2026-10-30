@@ -11,7 +11,13 @@ data class HoldSeatRequest(
     val passengerType: PassengerType,
     val firstName: String? = null,
     val lastName: String? = null,
-)
+    val passportNumber: String? = null,
+) {
+    override fun toString(): String =
+        "HoldSeatRequest(seatNumber=$seatNumber, passengerType=$passengerType, firstName=$firstName, lastName=$lastName, passportNumber=${passportNumber?.let { "••••${takeLast4(it)}" } ?: "none"})"
+
+    private fun takeLast4(value: String): String = value.takeLast(4)
+}
 
 interface ReserveSeats {
 

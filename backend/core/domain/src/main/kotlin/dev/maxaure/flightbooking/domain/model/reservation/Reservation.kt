@@ -16,6 +16,8 @@ data class PassengerSeat(
     val seatNumber: SeatNumber,
     val firstName: String,
     val lastName: String,
+    val passportNumber: String? = null,
+    val passportNumberLast4: String? = null,
 ) {
     val fullName: String
         get() = "$firstName $lastName"
@@ -24,7 +26,13 @@ data class PassengerSeat(
         if (firstName.isBlank() || lastName.isBlank()) {
             throw InvalidDomainValueException("Passenger first and last name must both be provided")
         }
+        if (passportNumber != null && passportNumber.isBlank()) {
+            throw InvalidDomainValueException("Passport number must not be blank when provided")
+        }
     }
+
+    override fun toString(): String =
+        "PassengerSeat(seatNumber=$seatNumber, firstName=$firstName, lastName=$lastName, passportNumber=${passportNumberLast4?.let { "••••$it" } ?: "none"})"
 }
 
 enum class ReservationStatus {

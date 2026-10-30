@@ -6,6 +6,7 @@ import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
 import dev.maxaure.flightbooking.persistence.entity.ReservationEntity
 import dev.maxaure.flightbooking.persistence.entity.ReservationSeatEntity
+import dev.maxaure.flightbooking.persistence.repository.PassportCipher
 import java.util.UUID
 
 internal object ReservationMapper {
@@ -30,14 +31,27 @@ internal object ReservationMapper {
     )
 
     fun seatToDomain(seat: ReservationSeatEntity, seatNumber: SeatNumber): PassengerSeat =
-        PassengerSeat(seatNumber = seatNumber, firstName = seat.firstName, lastName = seat.lastName)
+        PassengerSeat(
+            seatNumber = seatNumber,
+            firstName = seat.firstName,
+            lastName = seat.lastName,
+            passportNumber = null,
+            passportNumberLast4 = seat.passportNumberLast4,
+        )
 
-    fun seatToEntity(reservationId: UUID, flightSeatId: UUID, seat: PassengerSeat): ReservationSeatEntity =
+    fun seatToEntity(
+        reservationId: UUID,
+        flightSeatId: UUID,
+        seat: PassengerSeat,
+        passportCipher: PassportCipher,
+    ): ReservationSeatEntity =
         ReservationSeatEntity(
             id = UUID.randomUUID(),
             reservationId = reservationId,
             flightSeatId = flightSeatId,
             firstName = seat.firstName,
             lastName = seat.lastName,
+            passportNumberCiphertext = seat.passportNumber?.let(passportCipher::encrypt),
+            passportNumberLast4 = seat.passportNumber?.let(passportCipher::last4),
         )
 }

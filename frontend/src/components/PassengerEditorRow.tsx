@@ -10,6 +10,7 @@ export function PassengerEditorRow({
   hasProfileName,
   onChoose,
   onName,
+  onPassport,
   onRemove,
 }: {
   seat: SeatResponse
@@ -19,6 +20,7 @@ export function PassengerEditorRow({
   hasProfileName: boolean
   onChoose: (passengerType: 'SELF' | 'OTHER') => void
   onName: (field: 'firstName' | 'lastName', value: string) => void
+  onPassport: (value: string) => void
   onRemove: () => void
 }) {
   const forSelf = draft.passengerType === 'SELF'
@@ -74,6 +76,18 @@ export function PassengerEditorRow({
           />
         </label>
       </div>
+      <label className="passport-field">
+        <span className="muted">Passport number (required)</span>
+        <input
+          type="text"
+          aria-label={`Passport number for seat ${seat.seat}`}
+          placeholder="Required"
+          maxLength={20}
+          required
+          value={draft.passportNumber}
+          onChange={(event) => onPassport(event.target.value)}
+        />
+      </label>
       {forSelf && !hasProfileName && (
         <p className="muted departure-passenger">
           Your profile has no name yet. <Link to="/profile">Add your details</Link>.

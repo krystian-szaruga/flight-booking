@@ -24,6 +24,9 @@ internal data class SeatRequest(
     val firstName: String? = null,
 
     val lastName: String? = null,
+
+    @field:NotBlank(message = "Passport number is required")
+    val passportNumber: String? = null,
 ) {
     fun toRequest(): HoldSeatRequest =
         HoldSeatRequest(
@@ -31,7 +34,11 @@ internal data class SeatRequest(
             passengerType = requireNotNull(passengerType) { "Passenger type is required" },
             firstName = firstName,
             lastName = lastName,
+            passportNumber = passportNumber,
         )
+
+    override fun toString(): String =
+        "SeatRequest(seat=$seat, passengerType=$passengerType, firstName=$firstName, lastName=$lastName, passportNumber=${passportNumber?.let { "••••${it.takeLast(4)}" } ?: "none"})"
 }
 
 internal data class CancelSeatsRequest(

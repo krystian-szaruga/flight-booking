@@ -23,4 +23,10 @@ internal class ReservationSeatEntity(
 
     @Column(name = "last_name", nullable = false)
     var lastName: String,
+
+    @Column(name = "passport_number_ciphertext")
+    var passportNumberCiphertext: String? = null,
+
+    @Column(name = "passport_number_last4")
+    var passportNumberLast4: String? = null,
 )

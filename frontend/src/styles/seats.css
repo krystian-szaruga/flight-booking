@@ -234,6 +234,18 @@
   cursor: default;
 }
 
+.passport-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.passport-field input {
+  width: 100%;
+  min-width: 0;
+}
+
 .hold-seat-picker {
   list-style: none;
   padding: 0;

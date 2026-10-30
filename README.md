@@ -218,6 +218,12 @@ Local-first, cloud-ready:
 
 `POST /api/v1/reservations/{id}/payment` takes `idempotencyKey`, `cardNumber` and `cardHolder`, and confirms the reservation on approval. Replaying a key returns the stored payment instead of charging again; paying a confirmed or expired hold answers `409`.
 
+## Security notes
+
+Passport numbers are required for every passenger on a reservation seat. When supplied, `PassportCipher` encrypts them with AES-256-GCM using a random 12-byte IV per value and stores `v1:<iv>:<ciphertext>` in `reservation_seat.passport_number_ciphertext`. Only `passport_number_last4` is kept in plaintext, and the API returns `••••1234`; reads never decrypt. The key comes from `PASSPORT_ENCRYPTION_KEY` (Base64-encoded 32 bytes) and must never be committed; see `infra/.env.example`. The `v1:` prefix leaves room for key rotation.
+
+This is a local, single-key setup. Generate the key with `export PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32)` before starting the backend. A production deployment would use KMS/HSM-backed envelope encryption, per-tenant keys, a retention/purge policy, audit logging on decrypt, and a separate service that owns sensitive documents. Passport values must never be logged, put in exception messages, or included in snapshots.
+
 ## Currency
 
 `GET /api/v1/currencies` returns the default and supported codes. Prices are converted server-side when a request carries `?currency=XXX` (`/flights`, `/flights/deals`, `/flights/{id}/seats` and the reservation endpoints), and payments are charged in the selected currency.

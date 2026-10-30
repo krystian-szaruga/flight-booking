@@ -15,6 +15,7 @@ function seatMapRoute(overrides: Parameters<typeof seatMap>[0] = {}) {
 async function namePassenger(user: ReturnType<typeof userEvent.setup>, seat: string) {
   await user.type(screen.getByLabelText(`First name for seat ${seat}`), 'Grace')
   await user.type(screen.getByLabelText(`Last name for seat ${seat}`), 'Hopper')
+  await user.type(screen.getByLabelText(`Passport number for seat ${seat}`), 'X1234567')
 }
 
 describe('buying seats', () => {
@@ -32,11 +33,55 @@ describe('buying seats', () => {
     await user.click(screen.getByRole('button', { name: 'Buy' }))
 
     expect(backend.lastCall(/POST \/api\/v1\/reservations\/flights\/LO26/).body).toEqual({
-      seats: [{ seat: '3A', passengerType: 'OTHER', firstName: 'Grace', lastName: 'Hopper' }],
+      seats: [
+        {
+          seat: '3A',
+          passengerType: 'OTHER',
+          firstName: 'Grace',
+          lastName: 'Hopper',
+          passportNumber: 'X1234567',
+        },
+      ],
     })
     expect(await screen.findByRole('heading', { name: 'Complete your booking' })).toBeInTheDocument()
     expect(screen.getByText('Grace Hopper')).toBeInTheDocument()
     expect(screen.getByText(/LO 26 · WAW to LIS/)).toBeInTheDocument()
+  })
+
+  it('when a passenger enters a passport number then it is sent with the hold and checkout shows only the last four digits', async () => {
+    const backend = startBackend([
+      SIGNED_IN,
+      seatMapRoute(),
+      {
+        method: 'POST',
+        path: '/api/v1/reservations/flights/LO26',
+        body: reservation({
+          seats: [{ seat: '3A', firstName: 'Grace', lastName: 'Hopper', passportNumber: '••••4567' }],
+        }),
+        once: true,
+      },
+    ])
+    const user = userEvent.setup()
+    renderApp('/flights/LO26/seats')
+
+    await user.click(await screen.findByRole('gridcell', { name: '3A, economy, available' }))
+    await namePassenger(user, '3A')
+    await user.click(screen.getByRole('button', { name: 'Buy' }))
+
+    expect(backend.lastCall(/POST \/api\/v1\/reservations\/flights\/LO26/).body).toEqual({
+      seats: [
+        {
+          seat: '3A',
+          passengerType: 'OTHER',
+          firstName: 'Grace',
+          lastName: 'Hopper',
+          passportNumber: 'X1234567',
+        },
+      ],
+    })
+    expect(await screen.findByRole('heading', { name: 'Complete your booking' })).toBeInTheDocument()
+    expect(screen.getByDisplayValue('••••4567')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('X1234567')).not.toBeInTheDocument()
   })
 
   it('when a traveller books a seat for themselves then the profile name is sent instead of typed names', async () => {
@@ -52,10 +97,12 @@ describe('buying seats', () => {
     await user.click(screen.getByRole('radio', { name: 'For me' }))
     expect(screen.getByLabelText('First name for seat 3A')).toHaveValue('Ada')
     expect(screen.getByLabelText('Last name for seat 3A')).toHaveValue('Lovelace')
+    expect(screen.getByRole('button', { name: 'Buy' })).toBeDisabled()
+    await user.type(screen.getByLabelText('Passport number for seat 3A'), 'X1234567')
     await user.click(screen.getByRole('button', { name: 'Buy' }))
 
     expect(backend.lastCall(/POST \/api\/v1\/reservations\/flights\/LO26/).body).toEqual({
-      seats: [{ seat: '3A', passengerType: 'SELF' }],
+      seats: [{ seat: '3A', passengerType: 'SELF', passportNumber: 'X1234567' }],
     })
     expect(await screen.findByRole('heading', { name: 'Complete your booking' })).toBeInTheDocument()
   })

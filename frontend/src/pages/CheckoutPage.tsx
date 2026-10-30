@@ -198,7 +198,7 @@ export function CheckoutPage() {
                       </label>
                       <label>
                         <span className="muted">Passport number</span>
-                        <input disabled placeholder="Not supported yet" />
+                        <input value={seat.passportNumber ?? ''} readOnly placeholder="*******" />
                       </label>
                       <label>
                         <span className="muted">Phone number</span>
