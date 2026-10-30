@@ -49,3 +49,17 @@ reservation:
   expiry:
     enabled: false
     cron: "0 * * * * *"
+
+notification:
+  topic: flight-booking.notifications
+  consumer-group: flight-booking-notifications
+  kafka:
+    enabled: false
+  payment-reminder:
+    enabled: false
+    lead-minutes: 10
+    cron: "0 * * * * *"
+  departure-reminder:
+    enabled: false
+    lead-hours: 24
+    cron: "0 */5 * * * *"

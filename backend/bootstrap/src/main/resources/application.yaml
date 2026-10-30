@@ -17,6 +17,16 @@ spring:
   flyway:
     enabled: true
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
@@ -76,3 +86,17 @@ reservation:
   expiry:
     enabled: ${RESERVATION_EXPIRY_ENABLED:true}
     cron: ${RESERVATION_EXPIRY_CRON:0 * * * * *}
+
+notification:
+  topic: ${NOTIFICATION_TOPIC}
+  consumer-group: ${NOTIFICATION_CONSUMER_GROUP}
+  kafka:
+    enabled: ${NOTIFICATION_KAFKA_ENABLED}
+  payment-reminder:
+    enabled: ${PAYMENT_REMINDER_ENABLED}
+    lead-minutes: ${PAYMENT_REMINDER_LEAD_MINUTES}
+    cron: ${PAYMENT_REMINDER_CRON}
+  departure-reminder:
+    enabled: ${DEPARTURE_REMINDER_ENABLED}
+    lead-hours: ${DEPARTURE_REMINDER_LEAD_HOURS}
+    cron: ${DEPARTURE_REMINDER_CRON}

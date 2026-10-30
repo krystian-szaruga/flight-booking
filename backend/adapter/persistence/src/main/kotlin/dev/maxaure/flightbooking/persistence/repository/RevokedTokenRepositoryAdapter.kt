@@ -18,5 +18,5 @@ internal class RevokedTokenRepositoryAdapter(
     override fun isRevoked(tokenId: UUID): Boolean = jpa.existsById(tokenId)
 
     override fun purgeExpired(before: Instant): Int =
-        transactions.execute { jpa.deleteExpired(before) } ?: 0
+        transactions.execute { jpa.deleteExpired(before) }
 }

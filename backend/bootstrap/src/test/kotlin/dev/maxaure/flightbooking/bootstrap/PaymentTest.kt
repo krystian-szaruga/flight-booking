@@ -1,5 +1,6 @@
 package dev.maxaure.flightbooking.bootstrap
 
+import dev.maxaure.flightbooking.application.port.`in`.SendDueNotifications
 import io.kotest.core.extensions.ApplyExtension
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.extensions.spring.SpringExtension
@@ -22,6 +23,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import java.math.BigDecimal
 import java.time.Duration
+import java.time.Instant
 
 @ApplyExtension(SpringExtension::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -29,6 +31,7 @@ import java.time.Duration
 class PaymentTest(
     @Autowired private val jdbc: JdbcTemplate,
     @Autowired private val clock: MutableClock,
+    @Autowired private val notifications: SendDueNotifications,
     @LocalServerPort private val port: Int,
 ) : StringSpec({
 
@@ -135,6 +138,28 @@ class PaymentTest(
         status shouldBeExactly 409
         reservationStatus(jdbc, reservationId) shouldBe "PENDING"
         paymentCount(jdbc) shouldBe 0
+    }
+
+    "when the hold is close to expiry then the owner gets one payment reminder for its seats" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val reservationId = hold(anna, "anna@example.com", "12A")
+        clock.advance(Duration.ofMinutes(6))
+
+        notifications.sendPaymentReminders() shouldBeExactly 1
+        reminderSent(jdbc, "payment_reminder_sent_at", reservationId) shouldBe true
+        notifications.sendPaymentReminders() shouldBeExactly 0
+    }
+
+    "when a confirmed flight is close to departure then the owner gets one departure reminder" {
+        val anna = clientFor(port).also { register(it, "anna@example.com") }
+        val reservationId = hold(anna, "anna@example.com", "12A")
+        pay(anna, "anna@example.com", reservationId, "reminder-key", APPROVED_CARD).first shouldBeExactly 201
+        val twelveHoursBeforeDeparture = Instant.parse("2026-11-10T08:15:00Z").minus(Duration.ofHours(12))
+        clock.advance(Duration.between(clock.instant(), twelveHoursBeforeDeparture))
+
+        notifications.sendDepartureReminders() shouldBeExactly 1
+        reminderSent(jdbc, "departure_reminder_sent_at", reservationId) shouldBe true
+        notifications.sendDepartureReminders() shouldBeExactly 0
     }
 }) {
 
@@ -257,4 +282,10 @@ private fun paymentCurrency(jdbc: JdbcTemplate, idempotencyKey: String): String 
     jdbc.queryForObject<String>(
         "SELECT currency FROM payment WHERE idempotency_key = ?",
         idempotencyKey,
+    )!!
+
+private fun reminderSent(jdbc: JdbcTemplate, column: String, reservationId: String): Boolean =
+    jdbc.queryForObject<Boolean>(
+        "SELECT $column IS NOT NULL FROM reservation WHERE id = ?::uuid",
+        reservationId,
     )!!

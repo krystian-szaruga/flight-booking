@@ -2,22 +2,37 @@ package dev.maxaure.flightbooking.application.usecase
 
 import dev.maxaure.flightbooking.application.port.`in`.PaymentRequest
 import dev.maxaure.flightbooking.application.port.out.CurrencyConverter
+import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.HoldOutcome
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.PaymentCommand
 import dev.maxaure.flightbooking.application.port.out.PaymentGateway
 import dev.maxaure.flightbooking.application.port.out.PaymentRepository
 import dev.maxaure.flightbooking.application.port.out.PaymentResult
 import dev.maxaure.flightbooking.application.port.out.ReservationPricer
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
+import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.NotFoundException
+import dev.maxaure.flightbooking.domain.model.catalogue.Airport
+import dev.maxaure.flightbooking.domain.model.catalogue.Flight
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightIdentity
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightStatus
+import dev.maxaure.flightbooking.domain.model.codes.FlightNumber
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.notification.NotificationEvent
 import dev.maxaure.flightbooking.domain.model.payment.Payment
 import dev.maxaure.flightbooking.domain.model.payment.PaymentStatus
+import dev.maxaure.flightbooking.domain.model.pricing.Cabin
+import dev.maxaure.flightbooking.domain.model.pricing.FareClass
 import dev.maxaure.flightbooking.domain.model.pricing.Price
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
+import dev.maxaure.flightbooking.domain.model.seat.Seat
+import dev.maxaure.flightbooking.domain.model.user.Email
+import dev.maxaure.flightbooking.domain.model.user.PasswordHash
+import dev.maxaure.flightbooking.domain.model.user.User
 import dev.maxaure.flightbooking.domain.model.user.UserId
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -44,13 +59,47 @@ class PayReservationUseCaseTest {
     private val userId = UserId.new()
     private val flightId = UUID.randomUUID()
     private val price = Price(BigDecimal("250.00"), "PLN")
+    private val user = User.verified(Email.of("${userId.value}@example.com"), PasswordHash.fromTrusted("hash"), now, userId)
+    private val flight = Flight(
+        id = flightId,
+        flightNumber = FlightNumber.of("LO381"),
+        origin = Airport.create("WAW", "Warsaw Chopin", "Warsaw", "PL"),
+        destination = Airport.create("LIS", "Lisbon", "Lisbon", "PT"),
+        departureAt = now.plus(Duration.ofDays(3)),
+        arrivalAt = now.plus(Duration.ofDays(3)).plus(Duration.ofHours(4)),
+        aircraft = "A320neo",
+        status = FlightStatus.SCHEDULED,
+        fares = listOf(FareClass(UUID.randomUUID(), Cabin.ECONOMY, price)),
+    )
+    private val users = object : UserRepository {
+        override fun findById(id: UserId): User? = user.takeIf { it.id == id }
+        override fun findByEmail(email: Email): User? = user.takeIf { it.email == email }
+        override fun save(user: User): User = user
+    }
+    private val flights = object : FlightRepository {
+        override fun findById(id: UUID): Flight? = flight.takeIf { it.id == id }
+        override fun findByIdentity(identity: FlightIdentity): Flight? = flight.takeIf { it.identity == identity }
+        override fun save(flight: Flight): Flight = flight
+        override fun replaceSeatInventory(flightId: UUID, seats: List<Seat>) = Unit
+        override fun countSeats(flightId: UUID): Int = 0
+        override fun countSoldSeats(flightId: UUID): Int = 0
+        override fun findDeparturesBetween(from: Instant, before: Instant): List<Flight> = emptyList()
+    }
+    private val published = mutableListOf<NotificationEvent>()
+    private val notifications = object : NotificationPublisher {
+        override fun publish(event: NotificationEvent) {
+            published += event
+        }
+    }
     private val reservations = InMemoryReservationRepository { now }
     private val payments = InMemoryPaymentRepository()
     private val pricer = object : ReservationPricer {
         override fun priceOf(reservationId: UUID): Price? = price
     }
     private val gateway = StubPaymentGateway(PaymentResult.Approved("auth-1"))
-    private val useCase = PayReservationUseCase(reservations, payments, pricer, gateway, NoConversion, clock)
+    private val useCase = PayReservationUseCase(
+        reservations, payments, pricer, gateway, NoConversion, users, flights, notifications, clock,
+    )
 
     private val eurConverter = object : CurrencyConverter {
         override val defaultCurrency: String = "PLN"
@@ -60,7 +109,9 @@ class PayReservationUseCaseTest {
             if (target == null) price
             else Price(price.amount.multiply(BigDecimal("0.23")).setScale(2, RoundingMode.HALF_UP), target)
     }
-    private val eurUseCase = PayReservationUseCase(reservations, payments, pricer, gateway, eurConverter, clock)
+    private val eurUseCase = PayReservationUseCase(
+        reservations, payments, pricer, gateway, eurConverter, users, flights, notifications, clock,
+    )
 
     private fun hold(userId: UserId = this.userId, seat: String = "12A"): Reservation =
         reservations.holdSeats(
@@ -86,6 +137,39 @@ class PayReservationUseCaseTest {
         assertEquals(price, payment.amount)
         assertEquals(ReservationStatus.CONFIRMED, reservations.findById(reservation.id)?.status)
         assertNull(reservations.findById(reservation.id)?.expiresAt)
+    }
+
+    @Test
+    fun `when the gateway approves then the owner receives a confirmation for the held seats`() {
+        val reservation = hold(seat = "12A")
+
+        useCase.pay(userId, reservation.id, request())
+
+        val event = published.single() as NotificationEvent.ReservationConfirmed
+        assertEquals(user.email, event.recipient)
+        assertEquals(reservation.id, event.reservationId)
+        assertEquals(flight.flightNumber, event.flightNumber)
+        assertEquals(listOf(SeatNumber.of("12A")), event.seats)
+    }
+
+    @Test
+    fun `when the gateway declines then the owner receives no confirmation`() {
+        gateway.result = PaymentResult.Declined("Card declined by issuer")
+        val reservation = hold()
+
+        useCase.pay(userId, reservation.id, request())
+
+        assertEquals(emptyList(), published)
+    }
+
+    @Test
+    fun `when the same idempotency key is replayed then the owner is not notified twice`() {
+        val reservation = hold()
+        useCase.pay(userId, reservation.id, request())
+
+        useCase.pay(userId, reservation.id, request())
+
+        assertEquals(1, published.size)
     }
 
     @Test

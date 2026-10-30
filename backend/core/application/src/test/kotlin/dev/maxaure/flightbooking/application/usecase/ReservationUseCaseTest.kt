@@ -1,20 +1,33 @@
 package dev.maxaure.flightbooking.application.usecase
 
 import dev.maxaure.flightbooking.application.port.`in`.HoldSeatRequest
+import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.HoldOutcome
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.NotFoundException
+import dev.maxaure.flightbooking.domain.model.catalogue.Airport
+import dev.maxaure.flightbooking.domain.model.catalogue.Flight
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightIdentity
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightStatus
+import dev.maxaure.flightbooking.domain.model.codes.FlightNumber
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.notification.NotificationEvent
+import dev.maxaure.flightbooking.domain.model.pricing.Cabin
+import dev.maxaure.flightbooking.domain.model.pricing.FareClass
+import dev.maxaure.flightbooking.domain.model.pricing.Price
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerType
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
 import dev.maxaure.flightbooking.domain.model.reservation.ReservationStatus
 import dev.maxaure.flightbooking.domain.model.user.Email
 import dev.maxaure.flightbooking.domain.model.user.PasswordHash
+import dev.maxaure.flightbooking.domain.model.seat.Seat
 import dev.maxaure.flightbooking.domain.model.user.User
 import dev.maxaure.flightbooking.domain.model.user.UserId
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -41,7 +54,33 @@ class ReservationUseCaseTest {
     private val repository = InMemoryReservationRepository { now }
     private val userId = UserId.new()
     private val users = InMemoryUserRepository(createUser(userId))
-    private val useCase = ReservationUseCase(repository, users, clock)
+    private val flight = Flight(
+        id = flightId,
+        flightNumber = FlightNumber.of("LO381"),
+        origin = Airport.create("WAW", "Warsaw Chopin", "Warsaw", "PL"),
+        destination = Airport.create("LIS", "Lisbon", "Lisbon", "PT"),
+        departureAt = now.plus(Duration.ofDays(3)),
+        arrivalAt = now.plus(Duration.ofDays(3)).plus(Duration.ofHours(4)),
+        aircraft = "A320neo",
+        status = FlightStatus.SCHEDULED,
+        fares = listOf(FareClass(UUID.randomUUID(), Cabin.ECONOMY, Price(BigDecimal("250.00"), "PLN"))),
+    )
+    private val flights = object : FlightRepository {
+        override fun findById(id: UUID): Flight? = flight.takeIf { it.id == id }
+        override fun findByIdentity(identity: FlightIdentity): Flight? = flight.takeIf { it.identity == identity }
+        override fun save(flight: Flight): Flight = flight
+        override fun replaceSeatInventory(flightId: UUID, seats: List<Seat>) = Unit
+        override fun countSeats(flightId: UUID): Int = 0
+        override fun countSoldSeats(flightId: UUID): Int = 0
+        override fun findDeparturesBetween(from: Instant, before: Instant): List<Flight> = emptyList()
+    }
+    private val published = mutableListOf<NotificationEvent>()
+    private val notifications = object : NotificationPublisher {
+        override fun publish(event: NotificationEvent) {
+            published += event
+        }
+    }
+    private val useCase = ReservationUseCase(repository, users, flights, notifications, clock)
 
     private fun createUser(id: UserId) =
         User.verified(Email.of("${id.value}@example.com"), PasswordHash.fromTrusted("hash"), now, id)
@@ -134,6 +173,18 @@ class ReservationUseCaseTest {
         assertEquals(listOf("12B"), repository.heldSeats(flightId))
         assertEquals(ReservationStatus.EXPIRED, repository.findById(stale.id)?.status)
         assertEquals(ReservationStatus.PENDING, repository.findById(fresh.id)?.status)
+    }
+
+    @Test
+    fun `when the sweeper expires a hold then the owner is told which seats were released`() {
+        val stale = useCase.hold(userId, flightId, seats("12A", "12B"))
+        now = now.plus(Duration.ofMinutes(16))
+
+        useCase.releaseExpired()
+
+        val event = published.single() as NotificationEvent.ReservationExpired
+        assertEquals(createUser(userId).email, event.recipient)
+        assertEquals(listOf("12A", "12B"), event.seats.map { it.value })
     }
 
     @Test

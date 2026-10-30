@@ -4,7 +4,14 @@ import org.springframework.core.io.ClassPathResource
 import java.nio.charset.StandardCharsets
 
 internal class MailTemplates(
-    private val names: Set<String> = setOf("verification"),
+    private val names: Set<String> = setOf(
+        "verification",
+        "reservation-confirmed",
+        "payment-reminder",
+        "reservation-expired",
+        "flight-disrupted",
+        "departure-reminder",
+    ),
 ) {
 
     fun get(name: String): MailTemplate {

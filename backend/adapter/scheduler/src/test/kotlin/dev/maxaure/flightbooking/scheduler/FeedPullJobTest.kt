@@ -6,7 +6,10 @@ import dev.maxaure.flightbooking.application.port.out.FlightDataProvider
 import dev.maxaure.flightbooking.application.port.out.AirportRepository
 import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.application.port.out.NotificationAudience
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
+import dev.maxaure.flightbooking.domain.model.notification.NotificationEvent
 import dev.maxaure.flightbooking.domain.model.catalogue.Airport
 import dev.maxaure.flightbooking.domain.model.catalogue.FeedPage
 import dev.maxaure.flightbooking.domain.model.catalogue.Flight
@@ -36,6 +39,8 @@ class FeedPullJobTest {
             EmptyFlightRepository,
             runs,
             DirectRecordWriter,
+            EmptyNotificationAudience,
+            NoNotificationPublisher,
             clock,
         ),
         runs,
@@ -84,6 +89,30 @@ private class RecordingIngestionRunRepository : IngestionRunRepository {
     override fun save(run: IngestionRun): IngestionRun = run.also { saved += it }
 
     override fun findById(id: UUID): IngestionRun? = saved.lastOrNull { it.id == id }
+}
+
+private object NoNotificationPublisher : NotificationPublisher {
+    override fun publish(event: NotificationEvent) = Unit
+}
+
+private object EmptyNotificationAudience : NotificationAudience {
+    override fun paymentReminders(
+        now: Instant,
+        expiresBefore: Instant,
+        limit: Int,
+    ): List<NotificationEvent.PaymentReminder> = emptyList()
+
+    override fun departureReminders(
+        now: Instant,
+        departsBefore: Instant,
+        limit: Int,
+    ): List<NotificationEvent.DepartureReminder> = emptyList()
+
+    override fun disruptedPassengers(flight: Flight): List<NotificationEvent.FlightDisrupted> = emptyList()
+
+    override fun markPaymentReminderSent(reservationId: UUID, at: Instant) = Unit
+
+    override fun markDepartureReminderSent(reservationId: UUID, at: Instant) = Unit
 }
 
 private object EmptyAirportRepository : AirportRepository {

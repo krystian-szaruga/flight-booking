@@ -8,5 +8,4 @@ internal class TransactionalRecordWriter(
 ) : RecordWriter {
 
     override fun <T : Any> write(block: () -> T): T = transactions.execute { block() }
-        ?: error("TransactionTemplate returned no result")
 }

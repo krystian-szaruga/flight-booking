@@ -1,12 +1,18 @@
 package dev.maxaure.flightbooking.application.usecase
 
 import dev.maxaure.flightbooking.application.port.`in`.HoldSeatRequest
+import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.HoldOutcome
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.InvalidDomainValueException
+import dev.maxaure.flightbooking.domain.model.catalogue.Flight
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightIdentity
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.notification.NotificationEvent
+import dev.maxaure.flightbooking.domain.model.seat.Seat
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerType
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
@@ -40,7 +46,7 @@ class ReservationPassengerTest {
     private val repository = InMemoryReservationRepository()
     private val userId = UserId.new()
     private val users = InMemoryUserRepository(userWithName())
-    private val useCase = ReservationUseCase(repository, users, clock)
+    private val useCase = ReservationUseCase(repository, users, NoFlights, NoNotifications, clock)
 
     private fun userWithName(
         id: UserId = userId,
@@ -172,4 +178,18 @@ class ReservationPassengerTest {
         override fun findByUserId(userId: UUID): List<Reservation> =
             reservations.values.filter { it.userId == userId }
     }
+}
+
+private object NoFlights : FlightRepository {
+    override fun findById(id: UUID): Flight? = null
+    override fun findByIdentity(identity: FlightIdentity): Flight? = null
+    override fun save(flight: Flight): Flight = flight
+    override fun replaceSeatInventory(flightId: UUID, seats: List<Seat>) = Unit
+    override fun countSeats(flightId: UUID): Int = 0
+    override fun countSoldSeats(flightId: UUID): Int = 0
+    override fun findDeparturesBetween(from: Instant, before: Instant): List<Flight> = emptyList()
+}
+
+private object NoNotifications : NotificationPublisher {
+    override fun publish(event: NotificationEvent) = Unit
 }

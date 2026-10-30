@@ -24,7 +24,7 @@ internal class PaymentRepositoryAdapter(
         transactions.execute {
             payments.findByIdempotencyKey(payment.idempotencyKey)?.let { return@execute PaymentMapper.toDomain(it) }
             PaymentMapper.toDomain(payments.saveAndFlush(PaymentMapper.toEntity(payment)))
-        } ?: error("Payment transaction returned no result")
+        }
     } catch (ex: DataIntegrityViolationException) {
         payments.findByIdempotencyKey(payment.idempotencyKey)?.let(PaymentMapper::toDomain) ?: throw ex
     }

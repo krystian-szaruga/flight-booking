@@ -1,0 +1,12 @@
+Hello,
+
+Your seats are still held, but the hold expires at {expiresAt}.
+
+Reservation: {reservationId}
+Flight: {flightNumber}
+Departs: {departureAt}
+Seats: {seats}
+
+Pay before the hold expires to keep your seats.
+
+{appName}

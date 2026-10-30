@@ -1,0 +1,10 @@
+Hello,
+
+Flight {flightNumber} on your reservation {reservationId} is now {status}.
+
+Scheduled departure: {departureAt}
+Seats: {seats}
+
+Please check the latest flight information before travelling.
+
+{appName}
