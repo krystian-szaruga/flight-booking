@@ -1,0 +1,9 @@
+Hello,
+
+Your payment was received. Reservation {reservationId} is confirmed.
+
+Flight: {flightNumber}
+Departs: {departureAt}
+Seats: {seats}
+
+Thank you for flying with {appName}.

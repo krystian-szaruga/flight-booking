@@ -2,13 +2,16 @@ package dev.maxaure.flightbooking.application.usecase
 
 import dev.maxaure.flightbooking.application.port.`in`.HoldSeatRequest
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
+import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.HoldOutcome
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
+import dev.maxaure.flightbooking.domain.model.notification.NotificationEvent
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerSeat
 import dev.maxaure.flightbooking.domain.model.reservation.PassengerType
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
@@ -23,6 +26,8 @@ import java.util.UUID
 class ReservationUseCase(
     private val reservations: ReservationRepository,
     private val users: UserRepository,
+    private val flights: FlightRepository,
+    private val notifications: NotificationPublisher,
     private val clock: Clock,
 ) : ReserveSeats {
 
@@ -110,7 +115,24 @@ class ReservationUseCase(
 
     override fun releaseExpired(limit: Int): List<UUID> =
         reservations.findExpired(clock.instant(), limit)
-            .mapNotNull { reservations.releaseSeats(it.id) }
-            .filter { it.status == ReservationStatus.EXPIRED }
-            .map { it.id }
+            .mapNotNull { candidate ->
+                val released = reservations.releaseSeats(candidate.id) ?: return@mapNotNull null
+                if (released.status != ReservationStatus.EXPIRED) return@mapNotNull null
+                notifyExpired(released)
+                released.id
+            }
+
+    private fun notifyExpired(reservation: Reservation) {
+        val user = users.findById(UserId.fromTrusted(reservation.userId)) ?: return
+        val flight = flights.findById(reservation.flightId) ?: return
+        notifications.publish(
+            NotificationEvent.ReservationExpired(
+                recipient = user.email,
+                reservationId = reservation.id,
+                flightNumber = flight.flightNumber,
+                departureAt = flight.departureAt,
+                seats = reservation.seats.map { it.seatNumber },
+            ),
+        )
+    }
 }

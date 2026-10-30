@@ -1,0 +1,12 @@
+Hello,
+
+Your flight is coming up.
+
+Flight: {flightNumber}
+Departs: {departureAt}
+Seats: {seats}
+Reservation: {reservationId}
+
+Have a good trip.
+
+{appName}

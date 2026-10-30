@@ -1,0 +1,11 @@
+Hello,
+
+The hold on reservation {reservationId} has expired and the seats have been released.
+
+Flight: {flightNumber}
+Departs: {departureAt}
+Seats: {seats}
+
+You can book again at any time.
+
+{appName}

@@ -4,14 +4,18 @@ import dev.maxaure.flightbooking.application.port.`in`.PayReservation
 import dev.maxaure.flightbooking.application.port.`in`.PaymentRequest
 import dev.maxaure.flightbooking.application.port.out.CardDetails
 import dev.maxaure.flightbooking.application.port.out.CurrencyConverter
+import dev.maxaure.flightbooking.application.port.out.FlightRepository
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.PaymentCommand
 import dev.maxaure.flightbooking.application.port.out.PaymentGateway
 import dev.maxaure.flightbooking.application.port.out.PaymentRepository
 import dev.maxaure.flightbooking.application.port.out.PaymentResult
 import dev.maxaure.flightbooking.application.port.out.ReservationPricer
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
+import dev.maxaure.flightbooking.application.port.out.UserRepository
 import dev.maxaure.flightbooking.domain.ConflictException
 import dev.maxaure.flightbooking.domain.NotFoundException
+import dev.maxaure.flightbooking.domain.model.notification.NotificationEvent
 import dev.maxaure.flightbooking.domain.model.payment.Payment
 import dev.maxaure.flightbooking.domain.model.payment.PaymentStatus
 import dev.maxaure.flightbooking.domain.model.reservation.Reservation
@@ -25,6 +29,9 @@ class PayReservationUseCase(
     private val pricer: ReservationPricer,
     private val gateway: PaymentGateway,
     private val converter: CurrencyConverter,
+    private val users: UserRepository,
+    private val flights: FlightRepository,
+    private val notifications: NotificationPublisher,
     private val clock: Clock,
 ) : PayReservation {
 
@@ -51,10 +58,25 @@ class PayReservationUseCase(
             },
         )
         if (payment.status == PaymentStatus.APPROVED) {
-            reservations.confirm(reservationId)
+            val confirmed = reservations.confirm(reservationId)
                 ?: throw NotFoundException("Reservation $reservationId does not exist")
+            notifyConfirmed(confirmed)
         }
         return payment
+    }
+
+    private fun notifyConfirmed(reservation: Reservation) {
+        val user = users.findById(UserId.fromTrusted(reservation.userId)) ?: return
+        val flight = flights.findById(reservation.flightId) ?: return
+        notifications.publish(
+            NotificationEvent.ReservationConfirmed(
+                recipient = user.email,
+                reservationId = reservation.id,
+                flightNumber = flight.flightNumber,
+                departureAt = flight.departureAt,
+                seats = reservation.seats.map { it.seatNumber },
+            ),
+        )
     }
 
     private fun replayFor(payment: Payment, reservationId: UUID): Payment {

@@ -5,6 +5,8 @@ import dev.maxaure.flightbooking.domain.model.catalogue.IngestionSummary
 import dev.maxaure.flightbooking.application.port.out.AirportRepository
 import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.application.port.out.NotificationAudience
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
 import dev.maxaure.flightbooking.domain.NotFoundException
 import dev.maxaure.flightbooking.domain.model.catalogue.Airport
@@ -14,6 +16,7 @@ import dev.maxaure.flightbooking.domain.model.catalogue.FeedPage
 import dev.maxaure.flightbooking.domain.model.catalogue.Flight
 import dev.maxaure.flightbooking.domain.model.catalogue.FlightAssembler
 import dev.maxaure.flightbooking.domain.model.catalogue.FlightIdentity
+import dev.maxaure.flightbooking.domain.model.catalogue.FlightStatus
 import dev.maxaure.flightbooking.domain.model.codes.IataCode
 import dev.maxaure.flightbooking.domain.model.catalogue.IngestionRun
 import java.time.Clock
@@ -24,6 +27,8 @@ class CatalogueIngestionUseCase(
     private val flights: FlightRepository,
     private val runs: IngestionRunRepository,
     private val records: RecordWriter,
+    private val audience: NotificationAudience,
+    private val notifications: NotificationPublisher,
     private val clock: Clock,
 ) : IngestCatalogue {
 
@@ -81,8 +86,13 @@ class CatalogueIngestionUseCase(
         if (!taken && (existing == null || existing.seatRows != flight.seatRows)) {
             flights.replaceSeatInventory(saved.id, saved.seatInventory())
         }
+        if (existing != null && existing.status != saved.status && saved.status.isDisruption()) {
+            audience.disruptedPassengers(saved).forEach(notifications::publish)
+        }
         return saved
     }
+
+    private fun FlightStatus.isDisruption(): Boolean = this == FlightStatus.DELAYED || this == FlightStatus.CANCELLED
 
     private fun resolveAirport(code: String, known: Map<IataCode, Airport>): Airport {
         val iata = IataCode.of(code)

@@ -27,4 +27,10 @@ internal class ReservationEntity(
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
+
+    @Column(name = "payment_reminder_sent_at")
+    var paymentReminderSentAt: Instant? = null,
+
+    @Column(name = "departure_reminder_sent_at")
+    var departureReminderSentAt: Instant? = null,
 )

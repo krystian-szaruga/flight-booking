@@ -11,6 +11,7 @@ import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
 import dev.maxaure.flightbooking.application.port.`in`.ResendVerification
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
 import dev.maxaure.flightbooking.application.port.`in`.RevokeToken
+import dev.maxaure.flightbooking.application.port.`in`.SendDueNotifications
 import dev.maxaure.flightbooking.application.port.`in`.SearchAirports
 import dev.maxaure.flightbooking.application.port.`in`.SearchFlights
 import dev.maxaure.flightbooking.application.port.`in`.UpdateProfile
@@ -25,6 +26,8 @@ import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
 import dev.maxaure.flightbooking.application.port.out.LoginAttemptLimiter
+import dev.maxaure.flightbooking.application.port.out.NotificationAudience
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.PaymentGateway
 import dev.maxaure.flightbooking.application.port.out.PaymentRepository
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
@@ -49,6 +52,7 @@ import dev.maxaure.flightbooking.application.usecase.PayReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.RevokeTokenUseCase
 import dev.maxaure.flightbooking.application.usecase.ReservationUseCase
 import dev.maxaure.flightbooking.application.usecase.SearchAirportsUseCase
+import dev.maxaure.flightbooking.application.usecase.SendDueNotificationsUseCase
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -64,8 +68,10 @@ internal class UseCaseConfig {
         flights: FlightRepository,
         runs: IngestionRunRepository,
         records: RecordWriter,
+        audience: NotificationAudience,
+        notifications: NotificationPublisher,
         clock: Clock,
-    ): IngestCatalogue = CatalogueIngestionUseCase(airports, flights, runs, records, clock)
+    ): IngestCatalogue = CatalogueIngestionUseCase(airports, flights, runs, records, audience, notifications, clock)
 
     @Bean
     fun searchFlights(search: FlightSearch, converter: CurrencyConverter, clock: Clock): SearchFlights =
@@ -76,8 +82,13 @@ internal class UseCaseConfig {
         SearchAirportsUseCase(directory)
 
     @Bean
-    fun reserveSeats(reservations: ReservationRepository, users: UserRepository, clock: Clock): ReserveSeats =
-        ReservationUseCase(reservations, users, clock)
+    fun reserveSeats(
+        reservations: ReservationRepository,
+        users: UserRepository,
+        flights: FlightRepository,
+        notifications: NotificationPublisher,
+        clock: Clock,
+    ): ReserveSeats = ReservationUseCase(reservations, users, flights, notifications, clock)
 
     @Bean
     fun registerUser(
@@ -150,8 +161,12 @@ internal class UseCaseConfig {
         pricer: ReservationPricer,
         gateway: PaymentGateway,
         converter: CurrencyConverter,
+        users: UserRepository,
+        flights: FlightRepository,
+        notifications: NotificationPublisher,
         clock: Clock,
-    ): PayReservation = PayReservationUseCase(reservations, payments, pricer, gateway, converter, clock)
+    ): PayReservation =
+        PayReservationUseCase(reservations, payments, pricer, gateway, converter, users, flights, notifications, clock)
 
     @Bean
     fun describeReservation(
@@ -162,4 +177,19 @@ internal class UseCaseConfig {
 
     @Bean
     fun listCurrencies(converter: CurrencyConverter): ListCurrencies = ListCurrenciesUseCase(converter)
+
+    @Bean
+    fun sendDueNotifications(
+        audience: NotificationAudience,
+        notifications: NotificationPublisher,
+        clock: Clock,
+        @Value("\${notification.payment-reminder.lead-minutes}") paymentLeadMinutes: Long,
+        @Value("\${notification.departure-reminder.lead-hours}") departureLeadHours: Long,
+    ): SendDueNotifications = SendDueNotificationsUseCase(
+        audience,
+        notifications,
+        clock,
+        Duration.ofMinutes(paymentLeadMinutes),
+        Duration.ofHours(departureLeadHours),
+    )
 }

@@ -20,11 +20,12 @@ A flight ticket booking backend built with **Kotlin + Spring Boot** and **Postgr
 | Language | Kotlin 2.4.20, Java 25 toolchain |
 | Framework | Spring Boot 4.1.1 (Web, Data JPA, Validation, Actuator) |
 | Database | PostgreSQL 18 |
+| Messaging | Kafka (KRaft) for notification events |
 | Migrations | Flyway (schema is owned by migrations, `ddl-auto: validate`) |
 | Security | Spring Security + JWT in an httpOnly cookie, BCrypt, login attempt limiting |
 | API docs | springdoc-openapi (planned) |
 | Tests | Kotlin test + Kotest, Testcontainers for integration tests, ArchUnit for architecture rules (planned) |
-| Containers | Podman (`podman kube play`) for PostgreSQL only |
+| Containers | Podman (`podman kube play`) for PostgreSQL, Mailpit and Kafka |
 | Frontend | React + Vite + TypeScript |
 
 ## Architecture
@@ -37,7 +38,9 @@ bootstrap  ──▶  adapter:web
            ──▶  adapter:security
            ──▶  adapter:provider
            ──▶  adapter:scheduler
-           ──▶  adapter:kafka (planned)
+           ──▶  adapter:mail (Kafka producer/consumer + SMTP)
+           ──▶  adapter:payment
+           ──▶  adapter:currency
                     │
                     ▼
               core:application  ──▶  core:domain
@@ -89,7 +92,7 @@ flight-booking/
 ├── frontend/             # React + Vite + TypeScript
 ├── docs/                 # decisions, plans, open work
 └── infra/
-    └── infrastructure.yaml   # Podman pod: PostgreSQL only
+    └── infrastructure.yaml   # Podman pod: PostgreSQL, Mailpit and Kafka
 ```
 
 ## Running locally
@@ -99,11 +102,12 @@ Only infrastructure runs in a container during development. The app itself runs 
 **1. Start the infrastructure**
 
 ```bash
-podman kube play infra/infrastructure.yaml
-podman pod ps
+cd infra
+cp .env.example .env   # first time only
+./up.sh
 ```
 
-This pod publishes PostgreSQL 18 on `localhost:5432` with database, user and password all set to `flights`.
+`up.sh` loads `infra/.env` and substitutes the `POSTGRES_*` and `KAFKA_*` values into the pod. The pod publishes PostgreSQL 18 on `localhost:5432`, Mailpit (SMTP `1025`, UI `8025`) and Kafka on `localhost:9092`.
 
 To stop it (the `pgdata` volume is kept):
 
@@ -131,6 +135,7 @@ Required variables have no default and must be set before starting the app.
 | `DB_PASSWORD` | — | database password |
 | `JWT_SECRET` | — | HMAC key for signing access tokens, at least 32 characters |
 | `JWT_TTL_MINUTES` | `60` | access token lifetime, also the cookie max-age |
+| `PASSPORT_ENCRYPTION_KEY` | — | Base64-encoded 32-byte AES key for passport and phone encryption |
 | `COOKIE_SECURE` | `true` | set to `false` for plain-HTTP local development |
 | `COOKIE_SAME_SITE` | `Lax` | `SameSite` attribute of the session cookie (use `Strict` for same-site frontends) |
 | `LOGIN_MAX_FAILURES` | `5` | failed logins allowed per address + email inside the window |
@@ -147,6 +152,18 @@ Required variables have no default and must be set before starting the app.
 | `MAIL_SMTP_AUTH` | `false` | enable SMTP authentication |
 | `MAIL_STARTTLS` | `false` | enable STARTTLS |
 | `MAIL_FROM` | `no-reply@flight-booking.local` | `From` address of outgoing mail |
+| `PAYMENT_PROVIDER` | `fake` | payment gateway adapter; `fake` uses the deterministic test cards |
+| `CURRENCY_DEFAULT` | `PLN` | currency used when a request does not choose one |
+| `KAFKA_BOOTSTRAP_SERVERS` | — | Kafka bootstrap servers, for example `localhost:9092` |
+| `NOTIFICATION_TOPIC` | — | topic carrying notification events |
+| `NOTIFICATION_CONSUMER_GROUP` | — | consumer group of the mail consumer |
+| `NOTIFICATION_KAFKA_ENABLED` | — | `false` swaps in a no-op publisher and disables the consumer |
+| `PAYMENT_REMINDER_ENABLED` | — | run the payment reminder sweeper |
+| `PAYMENT_REMINDER_LEAD_MINUTES` | — | how long before hold expiry the reminder is sent |
+| `PAYMENT_REMINDER_CRON` | — | payment reminder schedule |
+| `DEPARTURE_REMINDER_ENABLED` | — | run the pre-departure reminder sweeper |
+| `DEPARTURE_REMINDER_LEAD_HOURS` | — | how long before departure the reminder is sent |
+| `DEPARTURE_REMINDER_CRON` | — | departure reminder schedule |
 | `REVOKED_TOKEN_PURGE_ENABLED` | `true` | run the scheduled purge of expired revoked tokens |
 | `REVOKED_TOKEN_PURGE_CRON` | `0 0 * * * *` | purge schedule |
 | `RESERVATION_EXPIRY_ENABLED` | `true` | run the scheduled reservation expiry sweeper |
@@ -159,6 +176,27 @@ Required variables have no default and must be set before starting the app.
 | `PULL_HORIZON_DAYS` | — | how far ahead the feed is requested |
 
 Actuator exposes only `health` and `info` over HTTP.
+
+**Infrastructure variables (`infra/.env`)**
+
+`up.sh` substitutes these into `infrastructure.yaml`.
+
+| Variable | Default in `.env.example` | Purpose |
+|---|---|---|
+| `POSTGRES_DB` | `flights` | database name |
+| `POSTGRES_USER` | `flights` | database user |
+| `POSTGRES_PASSWORD` | `change-me` | database password |
+| `KAFKA_NODE_ID` | `1` | KRaft node id |
+| `KAFKA_PROCESS_ROLES` | `broker,controller` | single-node KRaft roles |
+| `KAFKA_LISTENERS` | `PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093` | broker and controller listeners |
+| `KAFKA_ADVERTISED_LISTENERS` | `PLAINTEXT://localhost:9092` | address clients receive |
+| `KAFKA_CONTROLLER_LISTENER_NAMES` | `CONTROLLER` | controller listener name |
+| `KAFKA_LISTENER_SECURITY_PROTOCOL_MAP` | `CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT` | listener protocol mapping |
+| `KAFKA_CONTROLLER_QUORUM_VOTERS` | `1@localhost:9093` | KRaft quorum |
+| `KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR` | `1` | single-broker replication |
+| `KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR` | `1` | single-broker replication |
+| `KAFKA_TRANSACTION_STATE_LOG_MIN_ISR` | `1` | single-broker ISR |
+| `KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS` | `0` | faster consumer startup in development |
 
 ## Authentication
 
@@ -273,7 +311,8 @@ cd backend
 - [x] E-mail verification on registration, password reset, optional TOTP two-factor
 - [ ] Pricing engine (fare classes, taxes, price snapshot on reservation)
 - [x] Payments behind a fake gateway, with idempotency keys
-- [ ] Events: transactional outbox → Kafka → e-mail (Mailpit)
+- [x] Events: Kafka → e-mail (Mailpit)
+- [ ] Transactional outbox before Kafka, so a broker outage cannot lose an event
 - [ ] Check-in and signed boarding passes
 - [x] Tests with Testcontainers (written alongside features)
 - [ ] OpenAPI docs
@@ -284,12 +323,11 @@ Detailed staging, acceptance criteria and open questions: [docs/IMPLEMENTATION_P
 ### Later / optional
 
 - [ ] Containerize the backend (`./gradlew bootBuildImage` or a `Containerfile`) and add it to `infrastructure.yaml`
-- [ ] Add Kafka (KRaft) and Mailpit to the Podman pod
+- [x] Add Kafka (KRaft) and Mailpit to the Podman pod
 - [ ] Move credentials to Kubernetes `Secret` and configuration to `ConfigMap`
-- [ ] Notifications, in increasing order of complexity:
-  1. In-process events (`ApplicationEventPublisher` + `@TransactionalEventListener`)
-  2. Outbox pattern + Kafka, still inside the monolith
-  3. Separate `notification-service` consuming events from Kafka
+- [ ] Notifications, next steps:
+  1. Outbox pattern between the use case and Kafka
+  2. Separate `notification-service` consuming events from Kafka
 - [ ] Free-tier deployment (local-first, cloud-ready)
 - [ ] Kubernetes deployment
 
@@ -340,14 +378,28 @@ Registration and login today rely on a password alone. The next iteration adds p
 - Reset token: generate it with a SecureRandom of at least 32 bytes, and store only a SHA-256 hash (BCrypt isn’t needed for high-entropy tokens).
 - Timing: forgot should take about the same time whether or not the address exists, otherwise response time leaks account existence even with the 204. Doing the email work asynchronously via the outbox helps here naturally.
 - 2FA challenge token: bind it to the user and give it a short expiry (a few minutes), single use.
-## Notifications (design notes)
+## Notifications
 
-Notifications go to the user who made the reservation (events carry the e-mail address, so the consumer needs no extra lookups). Planned triggers:
+Notifications go to the user who made the reservation. Each event carries the e-mail address, so the consumer needs no database lookup.
+
+Triggers:
 
 - Reservation confirmed after payment
 - Payment reminder before the hold expires
 - Reservation expired and seat released
-- Flight delayed or cancelled (notifies all passengers of the flight)
+- Flight delayed or cancelled (every passenger of the flight)
 - Pre-departure reminder
 
-In development, e-mails would be sent to a local SMTP sink such as Mailpit.
+Flow:
+
+- Use cases publish a `NotificationEvent` through the `NotificationPublisher` port.
+- `adapter:mail` implements the port with a Kafka producer. Events are JSON messages on `NOTIFICATION_TOPIC`; the consumer in the same adapter renders a template and hands it to `MailSender` (SMTP, Mailpit in development).
+- Payments publish only after the reservation is confirmed, and idempotent replays do not publish again.
+- Expiry publishes from the existing sweeper, after the seats are released.
+- Ingestion publishes a disruption only when a flight transitions from another status to `DELAYED` or `CANCELLED`, so reingesting the same status does not repeat the mail.
+- Payment and departure reminders are scheduled sweeps. The selected reservations are marked with `payment_reminder_sent_at` / `departure_reminder_sent_at` after publishing, so a reservation is reminded once; a failed publish leaves it unmarked for the next sweep.
+- With `NOTIFICATION_KAFKA_ENABLED=false` the producer is a no-op and the consumer is not created; the integration tests use this so no broker is needed.
+
+Templates live in `adapter/mail/src/main/resources/mail` (`reservation-confirmed`, `payment-reminder`, `reservation-expired`, `flight-disrupted`, `departure-reminder`), each with subject, plain text and HTML alternatives.
+
+This is direct Kafka publishing; broker send failures are logged and the transactional-outbox step in the roadmap closes the gap between a committed reservation and a lost event.

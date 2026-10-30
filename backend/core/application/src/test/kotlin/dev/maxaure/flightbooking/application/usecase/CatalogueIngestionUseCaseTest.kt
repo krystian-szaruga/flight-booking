@@ -3,6 +3,8 @@ package dev.maxaure.flightbooking.application.usecase
 import dev.maxaure.flightbooking.application.port.out.AirportRepository
 import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.application.port.out.NotificationAudience
+import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
 import dev.maxaure.flightbooking.domain.InvalidDomainValueException
 import dev.maxaure.flightbooking.domain.NotFoundException
@@ -17,10 +19,13 @@ import dev.maxaure.flightbooking.domain.model.catalogue.Flight
 import dev.maxaure.flightbooking.domain.model.catalogue.FlightIdentity
 import dev.maxaure.flightbooking.domain.model.codes.FlightNumber
 import dev.maxaure.flightbooking.domain.model.codes.IataCode
+import dev.maxaure.flightbooking.domain.model.codes.SeatNumber
 import dev.maxaure.flightbooking.domain.model.catalogue.IngestionRun
 import dev.maxaure.flightbooking.domain.model.catalogue.IngestionStatus
+import dev.maxaure.flightbooking.domain.model.notification.NotificationEvent
 import dev.maxaure.flightbooking.domain.model.pricing.Price
 import dev.maxaure.flightbooking.domain.model.seat.Seat
+import dev.maxaure.flightbooking.domain.model.user.Email
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Duration
@@ -39,7 +44,11 @@ class CatalogueIngestionUseCaseTest {
     private val airports = InMemoryAirportRepository()
     private val flights = InMemoryFlightRepository()
     private val runs = InMemoryIngestionRunRepository()
-    private val service = CatalogueIngestionUseCase(airports, flights, runs, DirectRecordWriter, clock)
+    private val audience = InMemoryNotificationAudience()
+    private val notifications = RecordingNotificationPublisher()
+    private val service = CatalogueIngestionUseCase(
+        airports, flights, runs, DirectRecordWriter, audience, notifications, clock,
+    )
 
     private fun upsertAirport(record: FeedAirport, source: String = SOURCE) =
         service.upsertAirport(record, source, now)
@@ -144,6 +153,28 @@ class CatalogueIngestionUseCaseTest {
         val resubmitted = upsertFlight(feedFlight())
 
         assertEquals("DELAYED", resubmitted.status.name)
+    }
+
+    @Test
+    fun `when a scheduled flight is reported delayed then every passenger on it is notified`() {
+        seedAirports()
+        upsertFlight(feedFlight())
+
+        upsertFlight(feedFlight(status = "DELAYED"))
+
+        assertEquals(2, notifications.events.size)
+        assertEquals(1, audience.queries)
+    }
+
+    @Test
+    fun `when a flight is reingested with the same status then no disruption notification is sent`() {
+        seedAirports()
+        upsertFlight(feedFlight())
+
+        upsertFlight(feedFlight())
+
+        assertEquals(emptyList(), notifications.events)
+        assertEquals(0, audience.queries)
     }
 
     @Test
@@ -294,6 +325,48 @@ private class InMemoryFlightRepository : FlightRepository {
 
 private object DirectRecordWriter : RecordWriter {
     override fun <T : Any> write(block: () -> T): T = block()
+}
+
+private class InMemoryNotificationAudience : NotificationAudience {
+    var queries = 0
+
+    override fun paymentReminders(
+        now: Instant,
+        expiresBefore: Instant,
+        limit: Int,
+    ): List<NotificationEvent.PaymentReminder> = emptyList()
+
+    override fun departureReminders(
+        now: Instant,
+        departsBefore: Instant,
+        limit: Int,
+    ): List<NotificationEvent.DepartureReminder> = emptyList()
+
+    override fun disruptedPassengers(flight: Flight): List<NotificationEvent.FlightDisrupted> {
+        queries++
+        return listOf("ada@example.com", "bob@example.com").mapIndexed { index, email ->
+            NotificationEvent.FlightDisrupted(
+                recipient = Email.of(email),
+                reservationId = UUID.randomUUID(),
+                flightNumber = flight.flightNumber,
+                departureAt = flight.departureAt,
+                seats = listOf(SeatNumber.of(1, 'A' + index)),
+                status = flight.status,
+            )
+        }
+    }
+
+    override fun markPaymentReminderSent(reservationId: UUID, at: Instant) = Unit
+
+    override fun markDepartureReminderSent(reservationId: UUID, at: Instant) = Unit
+}
+
+private class RecordingNotificationPublisher : NotificationPublisher {
+    val events = mutableListOf<NotificationEvent>()
+
+    override fun publish(event: NotificationEvent) {
+        events += event
+    }
 }
 
 private class InMemoryIngestionRunRepository : IngestionRunRepository {

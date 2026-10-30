@@ -3,6 +3,7 @@ package dev.maxaure.flightbooking.persistence
 import dev.maxaure.flightbooking.application.port.out.AirportRepository
 import dev.maxaure.flightbooking.application.port.out.FlightRepository
 import dev.maxaure.flightbooking.application.port.out.IngestionRunRepository
+import dev.maxaure.flightbooking.application.port.out.NotificationAudience
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
 import dev.maxaure.flightbooking.application.port.out.AirportDirectory
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
@@ -18,6 +19,7 @@ import dev.maxaure.flightbooking.persistence.repository.AirportRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.FlightRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.FlightSearchAdapter
 import dev.maxaure.flightbooking.persistence.repository.IngestionRunRepositoryAdapter
+import dev.maxaure.flightbooking.persistence.repository.NotificationAudienceAdapter
 import dev.maxaure.flightbooking.persistence.repository.PassportCipher
 import dev.maxaure.flightbooking.persistence.repository.PendingRegistrationAdapter
 import dev.maxaure.flightbooking.persistence.repository.PaymentRepositoryAdapter
@@ -95,6 +97,10 @@ internal class PersistenceConfig {
         TransactionTemplate(transactions),
         passportCipher,
     )
+
+    @Bean
+    fun notificationAudience(reservations: SpringReservationJpaRepository): NotificationAudience =
+        NotificationAudienceAdapter(reservations)
 
     @Bean
     fun passportCipher(@Value("\${app.security.passport.encryption-key}") encryptionKey: String): PassportCipher =

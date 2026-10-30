@@ -10,9 +10,11 @@ import dev.maxaure.flightbooking.persistence.entity.FlightEntity
 import dev.maxaure.flightbooking.persistence.entity.FlightSeatEntity
 import dev.maxaure.flightbooking.persistence.mapper.AirportMapper
 import dev.maxaure.flightbooking.persistence.mapper.FlightMapper
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
+@Transactional(readOnly = true)
 internal class FlightRepositoryAdapter(
     private val flights: SpringFlightJpaRepository,
     private val fares: SpringFareClassJpaRepository,
@@ -26,6 +28,7 @@ internal class FlightRepositoryAdapter(
         flights.findByFlightNumberAndDepartureAt(identity.flightNumber.value, identity.departureAt)
             ?.let(::toDomainWithLayout)
 
+    @Transactional
     override fun save(flight: Flight): Flight {
         val entity = when (val existing = flights.findById(flight.id).orElse(null)) {
             null -> FlightMapper.toEntity(flight)
@@ -46,6 +49,7 @@ internal class FlightRepositoryAdapter(
         return FlightMapper.toDomain(flights.save(entity))
     }
 
+    @Transactional
     override fun replaceSeatInventory(flightId: UUID, seats: List<Seat>) {
         val flight = flights.getReferenceById(flightId)
         val fareClasses = fares.findAllById(seats.map { it.fareClassId }.distinct()).associateBy { it.id }
