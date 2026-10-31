@@ -272,7 +272,7 @@ npm test
 
 CI (`.github/workflows/ci.yml`) runs the backend tests, the frontend typecheck, build and tests, and starts the whole Podman stack to run the load tests.
 
-Load tests live in `load/` and use k6: `smoke.js` (health and search), `booking.js` (login, hold, pay) and `contention.js` (50 clients racing for one seat — exactly one hold may win). Locally:
+Load tests live in `load/` and use k6, so they need a running stack and `k6` on the PATH. The scenarios are `smoke.js` (health and search), `booking.js` (login, hold, pay) and `contention.js` (50 clients racing for one seat — exactly one hold may win). Locally:
 
 ```bash
 ./load/run.sh smoke.js
@@ -281,7 +281,7 @@ Load tests live in `load/` and use k6: `smoke.js` (health and search), `booking.
 ./load/run.sh cleanup
 ```
 
-The script creates and verifies a load-test account through Mailpit, and releases its reservations afterwards; `KEEP_DATA=1` skips the cleanup. In CI the stack is thrown away instead.
+The script creates and verifies a load-test account through Mailpit, and releases its reservations afterwards; `KEEP_DATA=1` skips the cleanup and `LOAD_EMAIL`/`LOAD_PASSWORD` override the account. In CI the stack is thrown away instead.
 
 ## License
 
