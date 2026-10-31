@@ -44,7 +44,7 @@ export async function fail(response: Response): Promise<never> {
 }
 
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetchWithRefresh(path, {
     signal,
     credentials: 'include',
     headers: { Accept: 'application/json' },
@@ -53,13 +53,33 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await response.json()) as T
 }
 
+async function refreshSession(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+export async function fetchWithRefresh(path: string, init: RequestInit): Promise<Response> {
+  const response = await fetch(path, init)
+  if (response.status !== 401 || path.startsWith('/api/auth/')) return response
+  if (!(await refreshSession())) return response
+  return fetch(path, init)
+}
+
 async function send<T>(
   method: 'POST' | 'PUT' | 'DELETE',
   path: string,
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetchWithRefresh(path, {
     method,
     signal,
     credentials: 'include',
@@ -184,7 +204,7 @@ export async function payReservation(
   reservationId: string,
   payment: PayReservationRequest,
 ): Promise<PaymentResponse> {
-  const response = await fetch(`/api/v1/reservations/${encodeURIComponent(reservationId)}/payment`, {
+  const response = await fetchWithRefresh(`/api/v1/reservations/${encodeURIComponent(reservationId)}/payment`, {
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },

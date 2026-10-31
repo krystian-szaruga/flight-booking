@@ -9,6 +9,7 @@ import dev.maxaure.flightbooking.application.port.out.AirportDirectory
 import dev.maxaure.flightbooking.application.port.out.FlightSearch
 import dev.maxaure.flightbooking.application.port.out.PendingRegistrationStore
 import dev.maxaure.flightbooking.application.port.out.PaymentRepository
+import dev.maxaure.flightbooking.application.port.out.RefreshTokenStore
 import dev.maxaure.flightbooking.application.port.out.ReservationPricer
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
@@ -23,6 +24,7 @@ import dev.maxaure.flightbooking.persistence.repository.NotificationAudienceAdap
 import dev.maxaure.flightbooking.persistence.repository.PassportCipher
 import dev.maxaure.flightbooking.persistence.repository.PendingRegistrationAdapter
 import dev.maxaure.flightbooking.persistence.repository.PaymentRepositoryAdapter
+import dev.maxaure.flightbooking.persistence.repository.RefreshTokenStoreAdapter
 import dev.maxaure.flightbooking.persistence.repository.ReservationPricerAdapter
 import dev.maxaure.flightbooking.persistence.repository.ReservationRepositoryAdapter
 import dev.maxaure.flightbooking.persistence.repository.RevokedTokenRepositoryAdapter
@@ -35,6 +37,7 @@ import dev.maxaure.flightbooking.persistence.repository.SpringRevokedTokenJpaRep
 import dev.maxaure.flightbooking.persistence.repository.SpringIngestionRunJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringPendingRegistrationJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringPaymentJpaRepository
+import dev.maxaure.flightbooking.persistence.repository.SpringRefreshTokenJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringReservationJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringReservationSeatJpaRepository
 import dev.maxaure.flightbooking.persistence.repository.SpringSeatMapJpaRepository
@@ -138,6 +141,15 @@ internal class PersistenceConfig {
         jpa: SpringRevokedTokenJpaRepository,
         transactions: PlatformTransactionManager,
     ): RevokedTokenRepository = RevokedTokenRepositoryAdapter(
+        jpa,
+        TransactionTemplate(transactions),
+    )
+
+    @Bean
+    fun refreshTokenStore(
+        jpa: SpringRefreshTokenJpaRepository,
+        transactions: PlatformTransactionManager,
+    ): RefreshTokenStore = RefreshTokenStoreAdapter(
         jpa,
         TransactionTemplate(transactions),
     )

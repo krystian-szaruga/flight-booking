@@ -1,0 +1,21 @@
+{
+  "airports": [
+    {"iataCode": "WAW", "name": "Warsaw Chopin Airport", "city": "Warsaw", "countryCode": "PL"},
+    {"iataCode": "LIS", "name": "Lisbon Humberto Delgado Airport", "city": "Lisbon", "countryCode": "PT"}
+  ],
+  "flights": [
+    {
+      "flightNumber": "FB100",
+      "origin": "WAW",
+      "destination": "LIS",
+      "departureAt": "2027-06-01T08:00:00Z",
+      "arrivalAt": "2027-06-01T12:30:00Z",
+      "aircraft": "A320",
+      "fares": [
+        {"cabin": "ECONOMY", "amount": 199.00, "currency": "PLN", "multiplier": 1.0}
+      ],
+      "seatRows": 20,
+      "status": "SCHEDULED"
+    }
+  ]
+}

@@ -2,6 +2,7 @@ package dev.maxaure.flightbooking.web.auth
 
 import dev.maxaure.flightbooking.application.port.`in`.AuthenticateUser
 import dev.maxaure.flightbooking.application.port.`in`.GetCurrentUser
+import dev.maxaure.flightbooking.application.port.`in`.RefreshSession
 import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
 import dev.maxaure.flightbooking.application.port.`in`.ResendVerification
 import dev.maxaure.flightbooking.application.port.`in`.RevokeToken
@@ -43,8 +44,10 @@ internal class AuthController(
     private val getCurrentUser: GetCurrentUser,
     private val updateProfile: UpdateProfile,
     private val revokeToken: RevokeToken,
+    private val refreshSession: RefreshSession,
     private val tokens: AccessTokenIssuer,
     private val cookie: AuthCookie,
+    private val refreshCookie: RefreshCookie,
 ) {
 
     @PostMapping("/register")
@@ -100,11 +103,33 @@ internal class AuthController(
     }
 
     @PostMapping("/logout")
-    fun logout(@CookieValue(AuthCookie.NAME, required = false) token: String?): ResponseEntity<Void> {
+    fun logout(
+        @CookieValue(AuthCookie.NAME, required = false) token: String?,
+        @CookieValue(RefreshCookie.NAME, required = false) refresh: String?,
+    ): ResponseEntity<Void> {
         token?.let { raw -> tokens.parse(raw) }
             ?.let { revokeToken.revoke(RevokeTokenCommand(it.id, it.expiresAt)) }
+        refresh?.let { refreshSession.revoke(it) }
         return ResponseEntity.noContent()
-            .header(HttpHeaders.SET_COOKIE, cookie.clear().toString())
+            .header(HttpHeaders.SET_COOKIE, cookie.clear().toString(), refreshCookie.clear().toString())
+            .build()
+    }
+
+    @PostMapping("/refresh")
+    fun refresh(
+        @CookieValue(RefreshCookie.NAME, required = false) refresh: String?,
+    ): ResponseEntity<Void> {
+        val refreshed = refresh?.let { refreshSession.refresh(it) }
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.SET_COOKIE, cookie.clear().toString(), refreshCookie.clear().toString())
+                .build()
+
+        return ResponseEntity.noContent()
+            .header(
+                HttpHeaders.SET_COOKIE,
+                cookie.issue(tokens.issue(refreshed.userId)).toString(),
+                refreshCookie.issue(refreshed.rawToken).toString(),
+            )
             .build()
     }
 
@@ -121,10 +146,16 @@ internal class AuthController(
             updateProfile.update(userId, UpdateProfileCommand(request.firstName, request.lastName)),
         )
 
-    private fun signedIn(user: User, status: HttpStatus): ResponseEntity<Any> =
-        ResponseEntity.status(status)
-            .header(HttpHeaders.SET_COOKIE, cookie.issue(tokens.issue(user.id)).toString())
+    private fun signedIn(user: User, status: HttpStatus): ResponseEntity<Any> {
+        val session = refreshSession.start(user.id)
+        return ResponseEntity.status(status)
+            .header(
+                HttpHeaders.SET_COOKIE,
+                cookie.issue(tokens.issue(user.id)).toString(),
+                refreshCookie.issue(session.rawToken).toString(),
+            )
             .body(UserResponse.from(user))
+    }
 
     private fun accountExists(): ResponseEntity<Any> {
         val problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, REGISTERED_ACCOUNT)

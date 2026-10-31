@@ -20,11 +20,13 @@ dependencies {
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.spring.boot.starter.security)
+    implementation(libs.springdoc.openapi.starter.webmvc.ui)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.extensions.spring)
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.archunit.junit5)
     testImplementation(libs.spring.boot.starter.webflux)
 
 }
