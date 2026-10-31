@@ -28,7 +28,7 @@ internal class RefreshTokenStoreAdapter(
     }
 
     override fun purgeExpired(before: Instant): Int =
-        transactions.execute { jpa.deleteExpired(before) } ?: 0
+        transactions.execute { jpa.deleteExpired(before) }
 
     private fun RefreshToken.toEntity(): RefreshTokenEntity =
         RefreshTokenEntity(id, userId, tokenHash, familyId, expiresAt, createdAt, revokedAt)
