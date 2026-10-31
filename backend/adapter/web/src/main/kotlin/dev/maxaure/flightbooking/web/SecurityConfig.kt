@@ -26,12 +26,14 @@ internal class SecurityConfig {
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
                 it.requestMatchers("/actuator/health").permitAll()
+                it.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 it.requestMatchers(
                     "/api/auth/register",
                     "/api/auth/login",
                     "/api/auth/logout",
                     "/api/auth/verify",
                     "/api/auth/verify/resend",
+                    "/api/auth/refresh",
                 ).permitAll()
                 it.requestMatchers(HttpMethod.GET, "/api/v1/flights/**").permitAll()
                 it.requestMatchers(HttpMethod.GET, "/api/v1/airports").permitAll()

@@ -22,6 +22,13 @@ internal class AuthWebConfig : WebMvcConfigurer {
         @Value("\${app.auth.cookie.same-site}") sameSite: String,
     ): AuthCookie = AuthCookie(Duration.ofMinutes(ttlMinutes), secure, sameSite)
 
+    @Bean
+    fun refreshCookie(
+        @Value("\${app.auth.refresh-ttl-days}") ttlDays: Long,
+        @Value("\${app.auth.cookie.secure}") secure: Boolean,
+        @Value("\${app.auth.cookie.same-site}") sameSite: String,
+    ): RefreshCookie = RefreshCookie(Duration.ofDays(ttlDays), secure, sameSite)
+
     @Bean("authFilter")
     fun authFilter(tokens: AccessTokenIssuer, revokedTokens: RevokedTokenRepository): Filter =
         AuthFilter(tokens, revokedTokens)

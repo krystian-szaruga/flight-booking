@@ -13,6 +13,7 @@ app:
   auth:
     jwt-secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
     jwt-ttl-minutes: 60
+    refresh-ttl-days: 7
     cookie:
       secure: false
       same-site: Lax

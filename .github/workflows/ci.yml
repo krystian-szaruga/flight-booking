@@ -7,6 +7,7 @@ on:
       - 'backend/**'
       - 'frontend/**'
       - 'infra/**'
+      - 'load/**'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main ]
@@ -14,6 +15,7 @@ on:
       - 'backend/**'
       - 'frontend/**'
       - 'infra/**'
+      - 'load/**'
       - '.github/workflows/ci.yml'
 
 concurrency:
@@ -101,18 +103,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          POSTGRES_PASSWORD=$(openssl rand -hex 16)
+          DB_PASSWORD=$(openssl rand -hex 16)
           JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
           PASSPORT_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '\n')
 
-          echo "::add-mask::$POSTGRES_PASSWORD"
+          echo "::add-mask::$DB_PASSWORD"
           echo "::add-mask::$JWT_SECRET"
           echo "::add-mask::$PASSPORT_ENCRYPTION_KEY"
 
           cat > .env <<'EOF'
-          POSTGRES_DB=flights
-          POSTGRES_USER=flights
-          DB_URL=jdbc:postgresql://localhost:5432/flights
+          DB_NAME=flights
           DB_USER=flights
           KAFKA_NODE_ID=1
           KAFKA_PROCESS_ROLES=broker,controller
@@ -140,12 +140,12 @@ jobs:
           COOKIE_SECURE=false
           PULL_CRON="0 0 */6 * * *"
           PULL_ENABLED=true
-          PULL_HORIZON_DAYS=60
+          PULL_HORIZON_DAYS=400
           PULL_ON_STARTUP=true
           EOF
 
           {
-            echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
+            echo "DB_PASSWORD=$DB_PASSWORD"
             echo "JWT_SECRET=$JWT_SECRET"
             echo "PASSPORT_ENCRYPTION_KEY=$PASSPORT_ENCRYPTION_KEY"
           } >> .env
@@ -155,18 +155,37 @@ jobs:
       - name: Start infra
         run: ./infra/up.sh
 
-      - name: Smoke test
+      - name: Install k6
         run: |
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Load tests
+        env:
+          BASE_URL: http://localhost:8080
+          MAILPIT_URL: http://localhost:8025
+        run: |
+          ready=0
           for i in $(seq 1 60); do
-            if curl -fsS http://localhost:8080/actuator/health >/dev/null 2>&1 \
+            if curl -fsS "$BASE_URL/actuator/health" >/dev/null 2>&1 \
               && curl -fsS http://localhost:5173/ >/dev/null 2>&1; then
-              echo "infra is up"
-              exit 0
+              ready=1
+              break
             fi
             sleep 5
           done
-          echo "infra did not become healthy" >&2
-          exit 1
+          if [ "$ready" != "1" ]; then
+            echo "infra did not become healthy" >&2
+            exit 1
+          fi
+          ./load/run.sh smoke.js
+          ./load/run.sh booking.js
+          ./load/run.sh contention.js
 
       - name: Stop infra
         if: always()

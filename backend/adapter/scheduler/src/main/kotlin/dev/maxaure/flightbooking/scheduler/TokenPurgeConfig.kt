@@ -1,5 +1,6 @@
 package dev.maxaure.flightbooking.scheduler
 
+import dev.maxaure.flightbooking.application.port.out.RefreshTokenStore
 import dev.maxaure.flightbooking.application.port.out.RevokedTokenRepository
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
@@ -14,8 +15,11 @@ import java.time.Clock
 internal class TokenPurgeConfig {
 
     @Bean
-    fun tokenPurgeJob(revokedTokens: RevokedTokenRepository, clock: Clock) =
-        TokenPurgeJob(revokedTokens, clock)
+    fun tokenPurgeJob(
+        revokedTokens: RevokedTokenRepository,
+        refreshTokens: RefreshTokenStore,
+        clock: Clock,
+    ) = TokenPurgeJob(revokedTokens, refreshTokens, clock)
 
     @Bean
     fun tokenPurgeTrigger(job: TokenPurgeJob) = TokenPurgeTrigger(job)

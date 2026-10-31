@@ -1,4 +1,4 @@
-import { fail } from './client'
+import { fail, fetchWithRefresh } from './client'
 import type { UserResponse } from './types'
 
 export { ApiError } from './client'
@@ -15,7 +15,7 @@ export interface ResendResponse {
 }
 
 async function send<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetchWithRefresh(path, {
     method,
     credentials: 'include',
     headers: {

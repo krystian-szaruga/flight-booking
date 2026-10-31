@@ -7,6 +7,7 @@ import dev.maxaure.flightbooking.application.port.`in`.GetCurrentUser
 import dev.maxaure.flightbooking.application.port.`in`.ListCurrencies
 import dev.maxaure.flightbooking.application.port.`in`.ListMyReservations
 import dev.maxaure.flightbooking.application.port.`in`.PayReservation
+import dev.maxaure.flightbooking.application.port.`in`.RefreshSession
 import dev.maxaure.flightbooking.application.port.`in`.RegisterUser
 import dev.maxaure.flightbooking.application.port.`in`.ResendVerification
 import dev.maxaure.flightbooking.application.port.`in`.ReserveSeats
@@ -31,6 +32,8 @@ import dev.maxaure.flightbooking.application.port.out.NotificationPublisher
 import dev.maxaure.flightbooking.application.port.out.PaymentGateway
 import dev.maxaure.flightbooking.application.port.out.PaymentRepository
 import dev.maxaure.flightbooking.application.port.out.RecordWriter
+import dev.maxaure.flightbooking.application.port.out.RefreshTokenGenerator
+import dev.maxaure.flightbooking.application.port.out.RefreshTokenStore
 import dev.maxaure.flightbooking.application.port.out.ReservationPricer
 import dev.maxaure.flightbooking.application.port.out.ReservationRepository
 import dev.maxaure.flightbooking.application.port.out.UserRepository
@@ -45,6 +48,7 @@ import dev.maxaure.flightbooking.application.usecase.user.VerifyEmailUseCase
 import dev.maxaure.flightbooking.domain.model.user.verification.ResendBackoff
 import dev.maxaure.flightbooking.application.usecase.user.AuthenticateUserUseCase
 import dev.maxaure.flightbooking.application.usecase.user.GetCurrentUserUseCase
+import dev.maxaure.flightbooking.application.usecase.user.RefreshSessionUseCase
 import dev.maxaure.flightbooking.application.usecase.user.UpdateProfileUseCase
 import dev.maxaure.flightbooking.application.usecase.ListMyReservationsUseCase
 import dev.maxaure.flightbooking.application.usecase.ListCurrenciesUseCase
@@ -149,6 +153,15 @@ internal class UseCaseConfig {
     @Bean
     fun revokeToken(revokedTokens: RevokedTokenRepository): RevokeToken =
         RevokeTokenUseCase(revokedTokens)
+
+    @Bean
+    fun refreshSession(
+        tokens: RefreshTokenStore,
+        generator: RefreshTokenGenerator,
+        clock: Clock,
+        @Value("\${app.auth.refresh-ttl-days}") ttlDays: Long,
+    ): RefreshSession =
+        RefreshSessionUseCase(tokens, generator, clock, Duration.ofDays(ttlDays))
 
     @Bean
     fun listMyReservations(reservations: ReservationRepository): ListMyReservations =
